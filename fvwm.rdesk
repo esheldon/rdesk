@@ -1,0 +1,213 @@
+###################################
+# fvwm.rdesk - fvwm configuration for remote desktop (rdesk) sessions
+#
+# Keeps the look of the "Suspiciously Default-looking" config
+# (L) Carl Svensson, https://datagubbe.se/fvwm - colours, borders, 3x3 pager
+# and menus - driven entirely with the mouse.
+#
+# There are no keyboard bindings and no mouse bindings that use a modifier,
+# so every key combination (Alt, Super, Tab...) reaches your applications,
+# and nothing collides with the window manager on the machine you connect from.
+#
+#   move a window      drag its title bar
+#   resize a window    drag a border or corner
+#   shade a window     double click its title bar
+#   raise / lower      right click the title bar or a border
+#   window menu        left click the title bar's left button (double click closes)
+#   maximize           left click the title bar's right button
+#   iconify            window menu -> Iconify; click the icon to get it back
+#   applications       left click the desktop background
+#   window list        middle click the desktop background
+#   session menu       right click the desktop background
+#   switch page        click a square in the pager
+#
+# The pager is the only module used.
+###################################
+
+InfoStoreAdd terminal st
+ImagePath $HOME/.fvwm/icons:+
+CursorStyle "ROOT" "X_cursor"
+
+###################################
+# == Pager / desktops ==
+###################################
+
+DeskTopSize 3 3
+EdgeResistance 150 150
+EdgeScroll 0 0
+
+*FvwmPagerBack #5d594d
+*FvwmPagerFore black
+*FvwmPagerHilight #7e7a5c
+*FvwmPagerFont none
+*FvwmPagerGeometry 150x90+0+0
+*FvwmPagerLabel FvwmPager
+*FvwmPager: WindowLabelFormat ""
+*FvwmPager: SolidSeparators
+
+###################################
+# == Window colours and styles ==
+###################################
+
+# Active window.
+ColorSet 16 fg beige, bg #5d594d
+Style * HilightColorSet 16
+
+# Inactive windows.
+ColorSet 17 fg Gainsboro, bg Gray20
+Style * Colorset 17
+
+Style * DecorateTransient
+Style * MouseFocus
+TitleStyle LeftJustified
+
+Style *             Title, Handles, !MWMFunctions, NoDecorHint
+Style *             DepressableBorder, HandleWidth 6, BorderWidth 6
+Style "FvwmPager"   NoTitle, Sticky, WindowListSkip, NoHandles, NeverFocus
+Style "xmessage"    NoTitle, NoHandles, BorderWidth 0, FPLenient, WindowListSkip
+
+###################################
+# == Menu style ==
+###################################
+
+ColorSet 18 fg white, bg Gray40
+MenuStyle * Mwm, PopupImmediately, PopdownImmediately, PopupOffset 0 100
+MenuStyle * VerticalItemSpacing 1 1, VerticalTitleSpacing 1 1
+MenuStyle * HilightBack SteelBlue4, ActiveFore White
+MenuStyle * Hilight3DOff, TrianglesUseFore, TrianglesSolid
+MenuStyle * TitleColorset 18, HilightTitleBack
+MenuStyle * BorderWidth 1, TitleUnderlines1, ItemFormat "  %l%>  "
+
+###################################
+# == General behaviour ==
+###################################
+
+ClickTime 250
+OpaqueMoveSize -1
+Emulate Mwm
+Style * FPGrabFocus
+Style * FPGrabFocusTransient
+IgnoreModifiers L25
+
+# Place new windows automatically.  Without this fvwm asks you to position
+# every window by hand, which is tedious over a remote connection.
+Style * PositionPlacement Center, GrabFocusOff
+
+# Icons of iconified windows go along the top, clear of the pager.
+Style * IconBox 170 4 -4 -4, IconFill left top, IconTitle
+
+###################################
+# == Window handling functions ==
+###################################
+
+# Title bar: click raises, drag moves, double click shades.
+DestroyFunc RaiseMoveOrShade
+AddToFunc RaiseMoveOrShade
++ D WindowShade
++ I Raise
++ C Focus
++ M Move
++ I Focus
+
+# Border or corner: click raises, drag resizes from that edge.
+DestroyFunc RaiseOrResize
+AddToFunc RaiseOrResize
++ I Raise
++ M Resize
+
+# Icon: click restores the window.
+DestroyFunc RaiseAndFocus
+AddToFunc RaiseAndFocus
++ I Iconify off
++ I Raise
++ I Focus
+
+# Menu entries, which resize or move with the pointer.
+DestroyFunc ResizeFromMenu
+AddToFunc ResizeFromMenu
++ I Raise
++ I WarpToWindow 100 100
++ I Resize
+
+DestroyFunc MoveFromMenu
+AddToFunc MoveFromMenu
++ I Raise
++ I Move
+
+###################################
+# == Mouse bindings (no modifiers anywhere) ==
+###################################
+
+# Title bar buttons, left to right: window menu (double click closes),
+# then iconify (small square) and maximize (big square) on the right.
+Mouse 0 1 A Menu Window-Ops2 Close
+Mouse 0 4 A Iconify
+Mouse 0 2 A Maximize 100 100
+
+# Desktop background.
+Mouse 1 R A Menu RootMenu
+Mouse 2 R A WindowList
+Mouse 3 R A Menu System-Menu Nop
+
+# Title bar.
+Mouse 1 T A RaiseMoveOrShade
+Mouse 2 T A Menu Window-Ops2
+Mouse 3 T A RaiseLower
+
+# Borders, corners and icons.
+Mouse 1 FS A RaiseOrResize
+Mouse 2 FS A Move
+Mouse 3 FSI A RaiseLower
+Mouse 1 I  A RaiseAndFocus
+
+###################################
+# == Menus ==
+###################################
+
+AddToMenu Window-Ops2
++  "Move"        MoveFromMenu
++  "Resize"      ResizeFromMenu
++  "Shade"       WindowShade
++  "Iconify"     Iconify
++  "(Un)Stick"   Stick
++  "Maximize"    Maximize
++  ""            Nop
++  "Delete"      Delete
++  "Close"       Close
++  "Destroy"     Destroy
+
+AddToMenu RootMenu
++  " Workspace Menu "  Title
++  "Terminal"          Exec exec $[infostore.terminal]
+# xterm comes from the host, so only offer it where it exists
+Test (x xterm) AddToMenu RootMenu "XTerm" Exec exec xterm
+AddToMenu RootMenu
++  ""                  Nop
++  "Window List"       WindowList
++  "Refresh Screen"    Refresh
++  "Restart fvwm"      Restart
+
+AddToMenu System-Menu
++  "Session"           Title
++  "Resize Window"     ResizeFromMenu
++  "Move Window"       MoveFromMenu
++  ""                  Nop
++  "Kill Window"       Destroy
++  "Delete Window"     Delete
++  ""                  Nop
++  "Refresh Screen"    Refresh
++  "Restart fvwm"      Restart
+
+# There is deliberately no "end session" entry: end a session from your own
+# machine with "rdesk <host> stop", which shuts the display server down too.
+
+###################################
+# == Startup ==
+###################################
+
+AddToFunc StartFunction
++ I Module FvwmPager
+
+###################################
+# == End of fvwm.rdesk ==
+###################################

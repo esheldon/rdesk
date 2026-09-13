@@ -1,0 +1,10 @@
+# the build tree and its products: rebuild with build/build.sh
+work/
+*.tar.gz
+
+# editor leftovers
+*~
+
+# your global gitignore excludes /build/ (compiled output); here it holds the
+# scripts that build the bundle, so keep them
+!/build/

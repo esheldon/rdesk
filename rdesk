@@ -1,0 +1,68 @@
+#!/bin/bash
+# rdesk: open your desktop on a remote host, starting a session if none is running.
+#
+#   rdesk [user@]host         connect to your desktop
+#   rdesk [user@]host stop    end the session
+#
+# The host needs the rdesk bundle unpacked in ~/.local/rdesk; this machine needs
+# a VNC viewer (TigerVNC's vncviewer).  Everything goes through one SSH
+# connection, so you are asked for a password or passphrase at most once, and
+# nothing listens on the network at either end.
+#
+# Closing the viewer leaves the session running; choosing Quit in the fvwm menu
+# ends it.  Use a specific login node's name rather than a load-balanced alias,
+# or you may not land on the node where your session is running.
+#
+# Settings, as environment variables:
+#   RDESK_SSH     ssh command (default: ssh), e.g. "ssh -J gateway"
+#   RDESK_VIEWER  VNC viewer command (default: vncviewer)
+#   RDESK_REMOTE  session script on the host (default: ~/local/rdesk/bin/rdesk-session)
+
+set -euo pipefail
+
+usage() { echo "usage: rdesk [user@]host [stop]" >&2; exit 2; }
+[ $# -ge 1 ] && [ $# -le 2 ] || usage
+host=$1
+action=${2:-open}
+
+SSH=${RDESK_SSH:-ssh}
+VIEWER=${RDESK_VIEWER:-vncviewer}
+REMOTE=${RDESK_REMOTE:-'~/local/rdesk/bin/rdesk-session'}   # the remote shell expands ~
+
+case $action in
+    open) ;;
+    stop) exec $SSH "$host" "$REMOTE stop" ;;
+    *) usage ;;
+esac
+
+command -v "${VIEWER%% *}" > /dev/null ||
+    { echo "rdesk: no VNC viewer found; install tigervnc-viewer or set RDESK_VIEWER" >&2; exit 1; }
+
+runtime=${XDG_RUNTIME_DIR:-/tmp}
+tag=$(printf '%s' "$host" | tr -c 'A-Za-z0-9_.-' '_')
+control=$runtime/rdesk-$tag.ssh
+socket=$runtime/rdesk-$tag.sock
+rm -f "$socket"
+
+# one shared connection for everything below
+$SSH -M -S "$control" -f -N "$host"
+cleanup() {
+    $SSH -S "$control" -O exit "$host" > /dev/null 2>&1 || true
+    rm -f "$socket"
+}
+trap cleanup EXIT
+
+# start the session (or find the running one); it prints the socket to use
+remote_socket=$($SSH -S "$control" "$host" "$REMOTE start" | tail -n 1)
+[ -n "$remote_socket" ] || { echo "rdesk: could not start a session on $host" >&2; exit 1; }
+
+$SSH -S "$control" -O forward -o ExitOnForwardFailure=yes \
+    -L "$socket:$remote_socket" "$host"
+
+for _ in $(seq 1 50); do
+    [ -S "$socket" ] && break
+    sleep 0.1
+done
+[ -S "$socket" ] || { echo "rdesk: the forwarded socket never appeared" >&2; exit 1; }
+
+$VIEWER "$socket"

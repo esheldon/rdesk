@@ -1,0 +1,137 @@
+#!/bin/sh
+# rdesk-session: run your remote desktop on this host.  Everything it needs is
+# in this bundle: nothing is installed, and no system libraries are used.
+#
+#   rdesk-session start    start the session if needed; print its socket path
+#   rdesk-session status   print the socket path if a session is running
+#   rdesk-session stop     end the session
+#
+# The desktop is reached only through a Unix socket that just you can open,
+# so no password is needed and nothing listens on the network.
+#
+#   RDESK_GEOMETRY   initial desktop size (default 1920x1200); your viewer can
+#                    resize the desktop once connected
+
+set -eu
+
+# where this bundle lives: any path works, and a symlink to this script is fine
+self=$(readlink -f -- "$0" 2>/dev/null) || self=$0
+[ -n "$self" ] || self=$0
+B=$(CDPATH= cd -- "$(dirname -- "$self")/.." && pwd)
+GEOMETRY=${RDESK_GEOMETRY:-1920x1200}
+
+STATE=${XDG_RUNTIME_DIR:-/tmp}/rdesk-$(id -u)
+SOCK=$STATE/vnc.sock
+XAUTH=$STATE/Xauthority
+PIDFILE=$STATE/xvnc.pid
+LOG=$STATE/session.log
+
+mkdir -p "$STATE" 2>/dev/null || true
+if [ "$(ls -ldn "$STATE" | awk '{print $3}')" != "$(id -u)" ]; then
+    echo "rdesk: $STATE is not owned by you" >&2
+    exit 1
+fi
+chmod 700 "$STATE"
+
+running() {
+    [ -S "$SOCK" ] && [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null
+}
+
+# fvwm has its module and data directories compiled in, so it is started with a
+# small generated file that points at this bundle and then reads your own
+# ~/.fvwm/config unchanged.  Your config therefore needs no bundle-specific
+# paths, and still works if the bundle is moved.
+make_fvwm_config() {
+    mkdir -p "$HOME/.fvwm"
+
+    # ~/.fvwm/fvwm.rdesk is used in preference to your own ~/.fvwm/config, since
+    # a config written for a local desktop usually binds keys and Alt-drags that
+    # the window manager you connect from swallows.  Delete fvwm.rdesk to use
+    # your own config here instead.
+    if [ ! -e "$HOME/.fvwm/fvwm.rdesk" ] && [ ! -e "$HOME/.fvwm/config" ]; then
+        cp "$B/share/fvwm/fvwm.rdesk" "$HOME/.fvwm/fvwm.rdesk"
+    fi
+    if [ -e "$HOME/.fvwm/fvwm.rdesk" ]; then
+        config=$HOME/.fvwm/fvwm.rdesk
+    else
+        # your own config may use fvwm's helper scripts, which are looked up in
+        # ~/.fvwm first; fvwm.rdesk needs none of them
+        config=$HOME/.fvwm/config
+        for f in "$B"/share/fvwm/FvwmScript-* "$B"/share/fvwm/FvwmForm-* \
+                 "$B"/share/fvwm/Config*; do
+            [ -f "$f" ] && [ ! -e "$HOME/.fvwm/${f##*/}" ] && cp "$f" "$HOME/.fvwm/"
+        done
+    fi
+
+    {
+        echo "ModulePath $B/libexec/fvwm/2.7.0"
+        echo "ImagePath $B/share/fvwm/default-config/images:+"
+        echo "SetEnv FVWM_DATADIR $B/share/fvwm"
+        echo "Read $config"
+    } > "$STATE/fvwm-init"
+}
+
+start() {
+    running && { echo "$SOCK"; return 0; }
+    rm -f "$SOCK" "$XAUTH" "$STATE/display"
+    make_fvwm_config
+
+    PATH=$B/bin:$PATH
+    export PATH XAUTHORITY=$XAUTH
+    cookie=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+    # the server accepts every cookie in the file; clients match by display,
+    # so the real entry is added below once the display number is known
+    xauth -f "$XAUTH" add :0 . "$cookie" >/dev/null 2>&1
+
+    : > "$STATE/display"
+    # -rfbport -1: no network listener at all; the session is reachable only
+    # through the socket above, which only your account can open
+    nohup env -u LD_LIBRARY_PATH Xvnc -displayfd 3 -auth "$XAUTH" \
+        -rfbunixpath "$SOCK" -rfbunixmode 0600 -rfbport -1 -SecurityTypes None \
+        -geometry "$GEOMETRY" -depth 24 -xkbdir "$B/share/X11/xkb" \
+        -desktop "rdesk $(uname -n)" -nolisten tcp \
+        >> "$LOG" 2>&1 3> "$STATE/display" &
+    echo $! > "$PIDFILE"
+
+    n=0
+    while [ ! -s "$STATE/display" ]; do
+        n=$((n + 1))
+        [ "$n" -gt 100 ] && { echo "rdesk: Xvnc did not start; see $LOG" >&2; exit 1; }
+        sleep 0.1 2>/dev/null || sleep 1
+    done
+    display=:$(cat "$STATE/display")
+    xauth -f "$XAUTH" add "$display" . "$cookie" >/dev/null 2>&1
+
+    # the window manager; when it exits, the session ends
+    DISPLAY=$display
+    export DISPLAY
+    export FONTCONFIG_FILE=$B/etc/fonts.conf
+    export TERMINFO_DIRS=$B/share/terminfo:
+    # if the window manager ever exits, shut the display server down with it and
+    # clear the socket, so the next connection starts a clean session
+    nohup sh -c "fvwm -f '$STATE/fvwm-init' >> '$LOG' 2>&1
+                 kill \$(cat '$PIDFILE') 2>/dev/null
+                 rm -f '$SOCK' '$PIDFILE'" >> "$LOG" 2>&1 &
+
+    echo "$SOCK"
+}
+
+case "${1:-start}" in
+    start)  start ;;
+    status) running && echo "$SOCK" || { echo "no session"; exit 1; } ;;
+    version)
+        echo "rdesk bundle 2026-09-13, installed in $B"
+        echo "modules: $(ls "$B/libexec/fvwm/2.7.0" 2>/dev/null | wc -l) in $B/libexec/fvwm/2.7.0"
+        "$B/bin/Xvnc" -version 2>&1 | grep -m 1 .
+        ;;
+    log)    # log [lines]: what the session and its programs have printed
+        [ -f "$LOG" ] && tail -n "${2:-40}" "$LOG" || echo "no log yet at $LOG"
+        ;;
+    stop)
+        running || { echo "no session"; exit 0; }
+        kill "$(cat "$PIDFILE")" 2>/dev/null || true
+        rm -f "$SOCK" "$PIDFILE"
+        echo "stopped"
+        ;;
+    *) echo "usage: rdesk-session [start|status|stop|log|version]" >&2; exit 2 ;;
+esac
