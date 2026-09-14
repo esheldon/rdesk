@@ -15,7 +15,7 @@
 #   raise / lower      right click the title bar or a border
 #   window menu        left click the title bar's left button (double click closes)
 #   maximize           left click the title bar's right button
-#   iconify            window menu -> Iconify; click the icon to get it back
+#   minimize           the title bar's small square; click the icon to get it back
 #   applications       left click the desktop background
 #   window list        middle click the desktop background
 #   session menu       right click the desktop background

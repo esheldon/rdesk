@@ -42,7 +42,7 @@ exec $WORK/proot -0 -r $WORK/root -b /etc/resolv.conf -b /dev -b /proc \\
     -b $REPO:/rdesk -w /build \\
     /usr/bin/env -i HOME=/root LANG=C.UTF-8 \\
     PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin \\
-    JOBS=${JOBS:-8} "\$@"
+    JOBS=\${JOBS:-8} "\$@"
 EOF
 chmod +x "$WORK/enter"
 mkdir -p "$WORK/root/build"

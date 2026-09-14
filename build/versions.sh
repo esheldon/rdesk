@@ -1,7 +1,7 @@
 # Source versions the bundle is built from.  Pinned so a rebuild produces the
 # same thing; bump deliberately.
 
-ALPINE_BRANCH=latest-stable
+ALPINE_BRANCH=v3.24
 
 TIGERVNC=1.16.2
 XSERVER=21.1.24

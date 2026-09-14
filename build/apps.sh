@@ -1,5 +1,5 @@
 #!/bin/sh
-# Build the rest of the session as static binaries: xkbcomp, xauth, fvwm, st.
+# Build the rest of the session as static binaries: xkbcomp, xauth and fvwm.
 # Runs inside the Alpine build tree (see bootstrap.sh).
 
 set -e

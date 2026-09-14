@@ -62,7 +62,8 @@ distributions). Everything goes through one SSH connection, so you are asked for
 a password or passphrase at most once.
 
 There is one session per host. `rdesk host` reconnects to it as often as you
-like; only `rdesk host stop` ends it.
+like; only `rdesk host stop` ends it. Connecting from a second machine takes
+the session over: the first viewer is disconnected, the desktop carries on.
 
 
 ## Using the desktop
@@ -168,6 +169,16 @@ Start with `rdesk-session version` and `rdesk-session log 40` on the host.
   configuration. `rdesk host stop`, then connect again.
 - **A session that will not start:** the log names the reason; `rdesk host stop`
   clears a half-dead one.
+- **A session gone after logging out of the host:** some sites configure
+  systemd to kill a user's processes when their last login ends
+  (`KillUserProcesses=yes`), which takes the desktop with it. Ask for lingering
+  once with `loginctl enable-linger`, and sessions survive logouts. A host that
+  merely clears your runtime directory at logout leaves the session running
+  with its bookkeeping gone; `rdesk-session stop` still finds and stops it.
+- **Missing PATH entries in the desktop's terminals:** the desktop is started
+  through your login shell, so `/etc/profile`, `/etc/profile.d` and your own
+  profile all apply. If something is still missing, it is set only for
+  interactive shells on that host.
 
 
 ## Building the bundle

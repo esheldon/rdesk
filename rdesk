@@ -4,14 +4,14 @@
 #   rdesk [user@]host         connect to your desktop
 #   rdesk [user@]host stop    end the session
 #
-# The host needs the rdesk bundle unpacked in ~/.local/rdesk; this machine needs
+# The host needs the rdesk bundle unpacked in ~/local/rdesk; this machine needs
 # a VNC viewer (TigerVNC's vncviewer).  Everything goes through one SSH
 # connection, so you are asked for a password or passphrase at most once, and
 # nothing listens on the network at either end.
 #
-# Closing the viewer leaves the session running; choosing Quit in the fvwm menu
-# ends it.  Use a specific login node's name rather than a load-balanced alias,
-# or you may not land on the node where your session is running.
+# Closing the viewer leaves the session running; "rdesk host stop" ends it.
+# Use a specific login node's name rather than a load-balanced alias, or you
+# may not land on the node where your session is running.
 #
 # Settings, as environment variables:
 #   RDESK_SSH     ssh command (default: ssh), e.g. "ssh -J gateway"
@@ -38,17 +38,20 @@ esac
 command -v "${VIEWER%% *}" > /dev/null ||
     { echo "rdesk: no VNC viewer found; install tigervnc-viewer or set RDESK_VIEWER" >&2; exit 1; }
 
+# Sockets for this run.  They carry our own pid, so two rdesk runs to the same
+# host never share or clobber each other's, and a socket left behind by an
+# interrupted run is never mistaken for a live one.
 runtime=${XDG_RUNTIME_DIR:-/tmp}
 tag=$(printf '%s' "$host" | tr -c 'A-Za-z0-9_.-' '_')
-control=$runtime/rdesk-$tag.ssh
-socket=$runtime/rdesk-$tag.sock
-rm -f "$socket"
+control=$runtime/rdesk-$tag.$$.ssh
+socket=$runtime/rdesk-$tag.$$.sock
+rm -f "$control" "$socket"
 
 # one shared connection for everything below
 $SSH -M -S "$control" -f -N "$host"
 cleanup() {
     $SSH -S "$control" -O exit "$host" > /dev/null 2>&1 || true
-    rm -f "$socket"
+    rm -f "$control" "$socket"
 }
 trap cleanup EXIT
 
