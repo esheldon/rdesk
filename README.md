@@ -30,7 +30,6 @@ where you left them.
 The bundle itself is not in the repository: build it with `build/build.sh`,
 which writes `work/rdesk-static-x86_64.tar.gz`.
 
-
 ## Install on a host
 
 ```sh
@@ -105,13 +104,6 @@ On the host:
 |---|---|---|
 | `RDESK_GEOMETRY` | `1920x1200` | the desktop's initial size |
 
-The terminal the desktop opens is set by one line in `~/.fvwm/fvwm.rdesk`,
-and it comes from the host rather than the bundle:
-
-```
-InfoStoreAdd terminal xterm -fa Hack -fs 13
-```
-
 The file is read afresh each session, and "Restart fvwm" in the menu reloads it.
 
 Fonts come from two places. Scalable fonts go through fontconfig, which sees
@@ -121,11 +113,6 @@ every host. Old-style bitmap fonts such as `fixed` are served by the display
 server itself; the bundle carries the full `misc-fixed` family, so `fixed`
 has its complete Unicode coverage everywhere, and any core font directories
 the host has are added to the server's font path as well.
-
-To use your own `~/.fvwm/config` on a host instead, delete `~/.fvwm/fvwm.rdesk`
-there. Be aware that a configuration written for a local desktop usually binds
-keys and Alt-drags that the window manager on your own machine swallows first.
-
 
 ## Commands on the host
 
