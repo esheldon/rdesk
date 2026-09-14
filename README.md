@@ -24,7 +24,7 @@ where you left them.
 |---|---|
 | `rdesk` | the command you run on your own machine |
 | `rdesk-session` | runs on the host to start, stop and report on a session |
-| `fvwm.rdesk` | window manager configuration for remote sessions |
+| `fvwm.rdesk` | example window manager configuration for remote sessions |
 | `build/` | builds the bundle from source |
 
 The bundle itself is not in the repository: build it with `build/build.sh`,
@@ -34,11 +34,17 @@ which writes `work/rdesk-static-x86_64.tar.gz`.
 ## Install on a host
 
 ```sh
+# install the bundle
 scp rdesk-static-x86_64.tar.gz fvwm.rdesk host:
-ssh host 'mkdir -p ~/local ~/.fvwm &&
-          rm -rf ~/local/rdesk &&
-          tar xzf rdesk-static-x86_64.tar.gz -C ~/local &&
-          cp fvwm.rdesk ~/.fvwm/'
+# on the host. Remove any existing install first
+rm -rf ~/local/rdesk &&
+tar xzf rdesk-static-x86_64.tar.gz -C ~/local
+
+# if you want to install the provided fvwm config (you can use your own)
+scp fvwm.rdesk host:
+# on the host
+mkdir -p ~/.fvwm
+cp fvwm.rdesk ~/.fvwm/config
 ```
 
 That gives `~/local/rdesk`, which is where `rdesk` looks by default. Any other
@@ -50,11 +56,6 @@ an old bundle keeps files the new one no longer ships, and a stale font or
 program can then shadow the new one. Removing the directory under a running
 session is safe; the next `rdesk host stop` and reconnect picks up the new
 programs.
-
-`cp fvwm.rdesk ~/.fvwm/` is worth doing by hand: a session installs that file
-only when you have no fvwm configuration at all, and never overwrites one you
-already have.
-
 
 ## Use it
 
@@ -78,26 +79,15 @@ Everything is done with the mouse, and no binding uses a modifier key, so Alt,
 Super and Tab all reach the programs you are running rather than being caught by
 the window manager at either end.
 
-| Action | How |
-|---|---|
-| Applications menu | left click the background |
-| Window list | middle click the background |
-| Session menu | right click the background |
-| Move a window | drag its title bar |
-| Resize | drag a border or corner |
-| Shade | double click the title bar |
-| Raise / lower | right click the title bar or a border |
-| Window menu | title bar's left button (double click closes) |
-| Minimize | title bar's small square; click the icon to restore |
-| Maximize | title bar's big square |
-| Switch page | click a square in the pager, top left |
+If you are familiar with fvwm, it should go smoothly.  With the default config,
+click on the desktop background to see a menu, which can launch a terminal
+(xterm).
 
 The desktop starts at 1920x1200 and follows your viewer window when you resize
 or maximize it.
 
 To end a session, use `rdesk host stop` from your own machine. There is
 deliberately no "quit" entry in the menus.
-
 
 ## Settings
 
