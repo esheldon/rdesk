@@ -134,12 +134,26 @@ start() {
     xauth -f "$XAUTH" add :0 . "$cookie" >> "$LOG" 2>&1 ||
         { echo "rdesk: could not create the display's access cookie; see $LOG" >&2; exit 1; }
 
+    # Core (bitmap) fonts are served by the X server itself.  Start with the
+    # bundle's misc-fixed family, so "fixed" has the same coverage everywhere,
+    # then add whatever core font directories this host has, so its own bitmap
+    # fonts are available too.
+    fontpath=$B/share/xfonts/misc
+    for d in /usr/share/fonts/X11/misc /usr/share/fonts/X11/75dpi \
+             /usr/share/fonts/X11/100dpi /usr/share/fonts/X11/Type1 \
+             /usr/share/X11/fonts/misc /usr/share/X11/fonts/75dpi \
+             /usr/share/X11/fonts/100dpi /usr/share/X11/fonts/Type1 \
+             /usr/share/fonts/misc /usr/share/fonts/75dpi /usr/share/fonts/100dpi; do
+        [ -f "$d/fonts.dir" ] && fontpath="$fontpath,$d"
+    done
+    fontpath="$fontpath,built-ins"
+
     : > "$STATE/display"
     # -rfbport -1: no network listener at all; the session is reachable only
     # through the socket above, which only your account can open
     nohup env -u LD_LIBRARY_PATH Xvnc -displayfd 3 -auth "$XAUTH" \
         -rfbunixpath "$SOCK" -rfbunixmode 0600 -rfbport -1 -SecurityTypes None \
-        -geometry "$GEOMETRY" -depth 24 -xkbdir "$B/share/X11/xkb" \
+        -geometry "$GEOMETRY" -depth 24 -xkbdir "$B/share/X11/xkb" -fp "$fontpath" \
         -desktop "rdesk $(uname -n)" -nolisten tcp \
         < /dev/null >> "$LOG" 2>&1 3> "$STATE/display" &
     echo $! > "$PIDFILE"

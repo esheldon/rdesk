@@ -62,7 +62,7 @@ echo "== installing build packages"
     libxau-dev libxdmcp-dev libxrender-dev libxft-dev libxpm-dev \
     libxinerama-dev libxrandr-dev libxcursor-dev libxfixes-dev libxkbfile-dev \
     libxmu-dev libxt-dev libsm-dev libfontenc-dev libxfont2-dev \
-    xkeyboard-config font-dejavu font-hack ncurses \
+    xkeyboard-config font-dejavu font-hack font-inconsolata font-misc-misc mkfontscale ncurses \
     openssl-dev openssl-libs-static'
 
 # fvwm's configure runs "$PKG_CONFIG" as a single word, so --static has to be
