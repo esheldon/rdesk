@@ -40,7 +40,7 @@ for f in DejaVuSans DejaVuSans-Bold DejaVuSansMono DejaVuSansMono-Bold \
     cp "$A/usr/share/fonts/dejavu/$f.ttf" "$OUT/share/fonts/"
 done
 cp "$A"/usr/share/fonts/hack/Hack-{Regular,Bold,Italic,BoldItalic}.ttf "$OUT/share/fonts/"
-cp "$A"/usr/share/fonts/inconsolata/Inconsolata-{Regular,Medium,Bold}.otf "$OUT/share/fonts/"
+cp "$A/usr/share/fonts/inconsolata-classic/Inconsolata.otf" "$OUT/share/fonts/"
 
 # core (bitmap) fonts, served by Xvnc itself: the misc-fixed family, so that
 # "fixed" has full Unicode coverage rather than the server's Latin-1 built-in.
