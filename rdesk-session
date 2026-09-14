@@ -33,8 +33,19 @@ if [ "$(ls -ldn "$STATE" | awk '{print $3}')" != "$(id -u)" ]; then
 fi
 chmod 700 "$STATE"
 
+# Is the pid in the pidfile really this session's Xvnc?  A stale pidfile whose
+# number has since been reused must never make us kill somebody else's process,
+# so check that the process was started with our own socket path.
+session_pid() {
+    pid=$(cat "$PIDFILE" 2>/dev/null) || return 1
+    [ -n "$pid" ] || return 1
+    kill -0 "$pid" 2>/dev/null || return 1
+    tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null | grep -q -- "$SOCK" || return 1
+    echo "$pid"
+}
+
 running() {
-    [ -S "$SOCK" ] && [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null
+    [ -S "$SOCK" ] && session_pid > /dev/null
 }
 
 # fvwm has its module and data directories compiled in, so it is started with a
@@ -110,7 +121,12 @@ start() {
     # if the window manager ever exits, shut the display server down with it and
     # clear the socket, so the next connection starts a clean session
     nohup sh -c "fvwm -f '$STATE/fvwm-init' >> '$LOG' 2>&1
-                 kill \$(cat '$PIDFILE') 2>/dev/null
+                 p=\$(cat '$PIDFILE' 2>/dev/null)
+                 if [ -n \"\$p\" ] &&
+                    tr '\\0' ' ' < /proc/\$p/cmdline 2>/dev/null | grep -q -- '$SOCK'
+                 then
+                     kill \"\$p\" 2>/dev/null
+                 fi
                  rm -f '$SOCK' '$PIDFILE'" >> "$LOG" 2>&1 &
 
     echo "$SOCK"
@@ -128,8 +144,12 @@ case "${1:-start}" in
         [ -f "$LOG" ] && tail -n "${2:-40}" "$LOG" || echo "no log yet at $LOG"
         ;;
     stop)
-        running || { echo "no session"; exit 0; }
-        kill "$(cat "$PIDFILE")" 2>/dev/null || true
+        pid=$(session_pid) || {
+            rm -f "$SOCK" "$PIDFILE"      # clear anything stale left behind
+            echo "no session"
+            exit 0
+        }
+        kill "$pid" 2>/dev/null || true
         rm -f "$SOCK" "$PIDFILE"
         echo "stopped"
         ;;
