@@ -145,8 +145,10 @@ palette = '''static const char *colorname[] = {
 	[255] = 0,
 
 	/* more colors can be added after 255 to use with DefaultXX */
-	"#fffbe5",	/* 256: cursor, the foreground colour as in xterm */
-	"#1f1f1f",	/* 257: reverse cursor, the background colour */
+	"#fffbe5",	/* 256: cursor */
+	"#555555",	/* 257: cursor inside a selection or in reverse video,
+			   where it is drawn against a light background, so it
+			   must not be the background colour itself */
 	"#fffbe5",	/* 258: default foreground colour */
 	"#1f1f1f",	/* 259: default background colour */
 };
