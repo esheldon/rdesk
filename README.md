@@ -37,6 +37,7 @@ which writes `work/rdesk-static-x86_64.tar.gz`.
 ```sh
 scp rdesk-static-x86_64.tar.gz fvwm.rdesk host:
 ssh host 'mkdir -p ~/local ~/.fvwm &&
+          rm -rf ~/local/rdesk &&
           tar xzf rdesk-static-x86_64.tar.gz -C ~/local &&
           cp fvwm.rdesk ~/.fvwm/'
 ```
@@ -44,6 +45,12 @@ ssh host 'mkdir -p ~/local ~/.fvwm &&
 That gives `~/local/rdesk`, which is where `rdesk` looks by default. Any other
 path works too — tell `rdesk` about it with `RDESK_REMOTE`. If your home
 directory is shared between hosts, install it once and every host has it.
+
+Use the same commands to update: the `rm -rf` matters, because unpacking over
+an old bundle keeps files the new one no longer ships, and a stale font or
+program can then shadow the new one. Removing the directory under a running
+session is safe; the next `rdesk host stop` and reconnect picks up the new
+programs.
 
 `cp fvwm.rdesk ~/.fvwm/` is worth doing by hand: a session installs that file
 only when you have no fvwm configuration at all, and never overwrites one you
