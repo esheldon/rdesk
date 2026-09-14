@@ -116,6 +116,49 @@ if [ ! -f stamps/st ]; then
     sed -i 's|^static char \*font = .*|static char *font = "Hack:pixelsize=15:antialias=true:autohint=false";|' config.def.h
     rm -f config.h
 
+    # Colours, which st compiles in.  The stock palette is hard to read on a
+    # dark background; entries not changed here keep st's own defaults.
+    python3 - <<'PYEOF'
+import re
+
+palette = '''static const char *colorname[] = {
+	/* 8 normal colors */
+	"#000000",	/* black */
+	"#ff6600",	/* red: an orange red */
+	"#99ff99",	/* green: lighter */
+	"#ffff66",	/* yellow: brighter */
+	"#99ccff",	/* blue: brighter */
+	"#dda0dd",	/* magenta: plum */
+	"#00cdcd",	/* cyan3, xterm's default */
+	"#e5e5e5",	/* gray90, xterm's default */
+
+	/* 8 bright colors */
+	"#7f7f7f",	/* gray50, xterm's default */
+	"#ff6600",	/* bright red: orange */
+	"#99ff99",	/* bright green */
+	"#ffff66",	/* bright yellow */
+	"#99ccff",	/* bright blue */
+	"#ff6699",	/* bright magenta: less harsh */
+	"#00ffff",	/* cyan, xterm's default */
+	"#ffffff",	/* white, xterm's default */
+
+	[255] = 0,
+
+	/* more colors can be added after 255 to use with DefaultXX */
+	"#fffbe5",	/* 256: cursor, the foreground colour as in xterm */
+	"#1f1f1f",	/* 257: reverse cursor, the background colour */
+	"#fffbe5",	/* 258: default foreground colour */
+	"#1f1f1f",	/* 259: default background colour */
+};
+'''
+
+src = open('config.def.h').read()
+m = re.search(r'static const char \*colorname\[\] = \{.*?\n\};\n', src, re.S)
+assert m and '8 normal colors' in m.group(0), "colour table not as expected"
+open('config.def.h', 'w').write(src[:m.start()] + palette + src[m.end():])
+print("patched colours")
+PYEOF
+
     # A static musl binary can only read /etc/passwd, so users defined in LDAP
     # or SSSD aren't found.  Fall back to the environment instead of dying.
     python3 - <<'PYEOF'
