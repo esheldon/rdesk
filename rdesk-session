@@ -100,6 +100,33 @@ make_fvwm_config() {
     } > "$STATE/fvwm-init"
 }
 
+# Font setup for the session: the bundle's own fonts plus whatever the host
+# has, so programs started from the desktop keep the host's font setup.  The
+# file is written with absolute paths, since fontconfig's relative prefixes do
+# not work for its cache directory.  Keeping the cache inside the bundle means
+# reinstalling the bundle discards it; a cache from an earlier bundle can
+# otherwise keep naming fonts that no longer exist.
+make_fonts_conf() {
+    mkdir -p "$B/cache" 2>/dev/null || true
+    # a changed directory time makes fontconfig re-read the fonts, so a cache
+    # written for an earlier bundle is never trusted for this one
+    touch "$B/share/fonts" 2>/dev/null || true
+    # the cache directory comes first: fontconfig writes to the first one it
+    # can, and the host's config names its own
+    cat > "$STATE/fonts.conf" <<EOF
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
+<fontconfig>
+  <cachedir>$B/cache</cachedir>
+  <include ignore_missing="yes">/etc/fonts/fonts.conf</include>
+  <dir>$B/share/fonts</dir>
+  <alias><family>monospace</family><default><family>DejaVu Sans Mono</family></default></alias>
+  <alias><family>sans-serif</family><default><family>DejaVu Sans</family></default></alias>
+  <alias><family>serif</family><default><family>DejaVu Serif</family></default></alias>
+</fontconfig>
+EOF
+}
+
 # The window manager is started through your login shell, so that it and
 # everything you launch from the desktop get the environment a normal login
 # gets: the PATH additions from /etc/profile and /etc/profile.d, your own
@@ -125,6 +152,7 @@ start() {
     rm -f "$SOCK" "$XAUTH" "$STATE/display"
     make_fvwm_config
     make_fvwm_start
+    make_fonts_conf
 
     PATH=$B/bin:$PATH
     export PATH XAUTHORITY=$XAUTH
@@ -171,7 +199,7 @@ start() {
     # the window manager; when it exits, the session ends
     DISPLAY=$display
     export DISPLAY
-    export FONTCONFIG_FILE=$B/etc/fonts.conf
+    export FONTCONFIG_FILE=$STATE/fonts.conf
     # if the window manager ever exits, shut the display server down with it and
     # clear the socket, so the next connection starts a clean session
     nohup sh -c "sh '$STATE/fvwm-start' >> '$LOG' 2>&1

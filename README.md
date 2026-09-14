@@ -25,7 +25,6 @@ where you left them.
 | `rdesk` | the command you run on your own machine |
 | `rdesk-session` | runs on the host to start, stop and report on a session |
 | `fvwm.rdesk` | window manager configuration for remote sessions |
-| `fonts.conf` | font setup for a session |
 | `build/` | builds the bundle from source |
 
 The bundle itself is not in the repository: build it with `build/build.sh`,

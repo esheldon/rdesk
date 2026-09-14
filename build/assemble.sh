@@ -14,7 +14,7 @@ TARBALL=${RDESK_TARBALL:-$WORK/rdesk-static-x86_64.tar.gz}
 [ -d "$R/bin" ] || { echo "nothing built yet in $R; run build/build.sh" >&2; exit 1; }
 
 rm -rf "$OUT"
-mkdir -p "$OUT"/{bin,libexec/fvwm/2.7.0,share/fvwm,share/X11,share/fonts,share/xfonts,etc}
+mkdir -p "$OUT"/{bin,libexec/fvwm/2.7.0,share/fvwm,share/X11,share/fonts,share/xfonts,cache}
 
 # programs
 cp "$A/build/tvbuild/unix/xserver/hw/vnc/Xvnc" "$OUT/bin/"
@@ -48,7 +48,6 @@ cp "$A/usr/share/fonts/inconsolata-classic/Inconsolata.otf" "$OUT/share/fonts/"
 cp -r "$A/usr/share/fonts/misc" "$OUT/share/xfonts/"
 
 # the parts kept in this repo
-cp "$REPO/fonts.conf" "$OUT/etc/fonts.conf"
 cp "$REPO/fvwm.rdesk" "$OUT/share/fvwm/fvwm.rdesk"
 cp "$REPO/rdesk-session" "$OUT/bin/rdesk-session"
 chmod +x "$OUT/bin/rdesk-session"
