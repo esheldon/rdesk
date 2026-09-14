@@ -116,12 +116,12 @@ if [ ! -f stamps/st ]; then
     sed -i 's|^static char \*font = .*|static char *font = "Hack:pixelsize=15:antialias=true:autohint=false";|' config.def.h
     rm -f config.h
 
-    # The mouse pointer: st draws the I-beam's body in colour 7 and its outline
-    # in colour 0, and the outline is the larger part, so the pointer reads as
-    # black.  Use the terminal's own foreground and background instead, which is
-    # what xterm does, so the pointer stays light on a dark background.
-    sed -i -e 's|^static unsigned int mousefg = .*|static unsigned int mousefg = 258;|' \
-           -e 's|^static unsigned int mousebg = .*|static unsigned int mousebg = 259;|' config.def.h
+    # The mouse pointer.  For the I-beam shape the outline (mousebg) covers
+    # twice the area of the body (mousefg), so the outline is what you see:
+    # xterm's black-body-white-outline default is what makes its pointer look
+    # light on a dark terminal.  Do the same, in this palette's colours.
+    sed -i -e 's|^static unsigned int mousefg = .*|static unsigned int mousefg = 259;|' \
+           -e 's|^static unsigned int mousebg = .*|static unsigned int mousebg = 258;|' config.def.h
 
     # Colours, which st compiles in.  The stock palette is hard to read on a
     # dark background; entries not changed here keep st's own defaults.
