@@ -11,7 +11,7 @@ libraries and no fonts works fine.
 
     your machine                        remote host
     ┌───────────┐    ssh tunnel    ┌──────────────────────────┐
-    │ vncviewer │◀─── socket ─────▶│ Xvnc ── fvwm ── st, apps │
+    │ vncviewer │◀─── socket ─────▶│  Xvnc ── fvwm ── apps    │
     └───────────┘                  └──────────────────────────┘
 
 Closing the viewer leaves everything running; connect again and your windows are
@@ -108,14 +108,15 @@ On the host:
 |---|---|---|
 | `RDESK_GEOMETRY` | `1920x1200` | the desktop's initial size |
 
-In `~/.fvwm/fvwm.rdesk`, the line that sets the terminal also sets its font:
+The terminal the desktop opens is set by one line in `~/.fvwm/fvwm.rdesk`,
+and it comes from the host rather than the bundle:
 
 ```
-InfoStoreAdd terminal st -f Hack:pixelsize=18
+InfoStoreAdd terminal xterm -fa Hack -fs 13
 ```
 
-Any fontconfig pattern works; `Hack` and `DejaVu Sans Mono` are in the bundle.
 The file is read afresh each session, and "Restart fvwm" in the menu reloads it.
+`Hack` and `DejaVu Sans Mono` are in the bundle for programs that want them.
 
 To use your own `~/.fvwm/config` on a host instead, delete `~/.fvwm/fvwm.rdesk`
 there. Be aware that a configuration written for a local desktop usually binds
@@ -136,8 +137,8 @@ ssh host '~/local/rdesk/bin/rdesk-session stop'      # same as rdesk host stop
 
 `Xvnc` from TigerVNC is both the X server and the VNC server — the same engine
 ThinLinc uses — so the desktop lives entirely on the host and only compressed
-screen updates cross the network. fvwm manages the windows and st is the
-terminal.
+screen updates cross the network. fvwm manages the windows; the programs you
+run, terminal included, come from the host.
 
 The session listens on a Unix socket that only your account can open, with no
 network listener at all, and the X display is protected by a cookie in your
@@ -153,7 +154,8 @@ connection, so nothing is exposed even on a host with thousands of users.
 - On load-balanced login pools, connect to a specific node's name, or you may not
   land on the node where your session is running.
 - Programs you run inside the session come from the host, so they need whatever
-  they normally need.
+  they normally need. The bundle provides the desktop, not the applications:
+  the terminal is the host's `xterm`.
 
 
 ## If something looks wrong
@@ -192,18 +194,14 @@ parallelism.
 | `build/libs.sh` | the X libraries Alpine has no static packages for |
 | `build/pam.sh` | a static `libpam.a`, which TigerVNC insists on linking |
 | `build/xvnc.sh` | `Xvnc`: TigerVNC's server code patched into the X.Org server |
-| `build/apps.sh` | `xkbcomp`, `xauth`, fvwm and st |
+| `build/apps.sh` | `xkbcomp`, `xauth` and fvwm |
 | `build/assemble.sh` | collects it all into the bundle and the tarball |
 
-Three patches are applied to upstream sources during the build, in `apps.sh`:
+One patch is applied to an upstream source during the build, in `apps.sh`:
 
 - **fvwm** treats the first `+` anywhere in `ModulePath`/`ImagePath` as "the
   previous path", which breaks any installation under a directory whose name
   contains `+`. It now only does that for a `+` that is a whole path element.
-- **st** dies with "who are you?" when your account is not in `/etc/passwd`,
-  which is how LDAP or SSSD users look to a static binary. It now falls back to
-  the environment.
-- **st**'s default font is changed to Hack, which is shipped in the bundle.
 
 `Xvnc` is built with an empty xkb binary directory so it finds `xkbcomp` on
 `PATH`, which is what lets the bundle work from any location.

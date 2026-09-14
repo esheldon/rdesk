@@ -117,7 +117,6 @@ start() {
     DISPLAY=$display
     export DISPLAY
     export FONTCONFIG_FILE=$B/etc/fonts.conf
-    export TERMINFO_DIRS=$B/share/terminfo:
     # if the window manager ever exits, shut the display server down with it and
     # clear the socket, so the next connection starts a clean session
     nohup sh -c "fvwm -f '$STATE/fvwm-init' >> '$LOG' 2>&1

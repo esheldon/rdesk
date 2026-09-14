@@ -24,7 +24,7 @@
 # The pager is the only module used.
 ###################################
 
-InfoStoreAdd terminal st
+InfoStoreAdd terminal xterm
 ImagePath $HOME/.fvwm/icons:+
 CursorStyle "ROOT" "X_cursor"
 
@@ -179,9 +179,6 @@ AddToMenu Window-Ops2
 AddToMenu RootMenu
 +  " Workspace Menu "  Title
 +  "Terminal"          Exec exec $[infostore.terminal]
-# xterm comes from the host, so only offer it where it exists
-Test (x xterm) AddToMenu RootMenu "XTerm" Exec exec xterm
-AddToMenu RootMenu
 +  ""                  Nop
 +  "Window List"       WindowList
 +  "Refresh Screen"    Refresh

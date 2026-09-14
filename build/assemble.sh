@@ -14,11 +14,11 @@ TARBALL=${RDESK_TARBALL:-$WORK/rdesk-static-x86_64.tar.gz}
 [ -d "$R/bin" ] || { echo "nothing built yet in $R; run build/build.sh" >&2; exit 1; }
 
 rm -rf "$OUT"
-mkdir -p "$OUT"/{bin,libexec/fvwm/2.7.0,share/fvwm,share/X11,share/fonts,share/terminfo,etc}
+mkdir -p "$OUT"/{bin,libexec/fvwm/2.7.0,share/fvwm,share/X11,share/fonts,etc}
 
 # programs
 cp "$A/build/tvbuild/unix/xserver/hw/vnc/Xvnc" "$OUT/bin/"
-for b in fvwm fvwm-root st xauth xkbcomp FvwmCommand; do
+for b in fvwm fvwm-root xauth xkbcomp FvwmCommand; do
     [ -f "$R/bin/$b" ] && cp "$R/bin/$b" "$OUT/bin/"
 done
 
@@ -30,12 +30,11 @@ done
 
 strip "$OUT"/bin/* "$OUT"/libexec/fvwm/2.7.0/* 2>/dev/null || true
 
-# data: fvwm's stock config and images, keyboard data, st's terminal description
+# data: fvwm's stock config and images, keyboard data
 cp -r "$R/share/fvwm/." "$OUT/share/fvwm/"
 cp -r "$A/usr/share/X11/xkb" "$OUT/share/X11/"
-cp -r "$R/share/terminfo/." "$OUT/share/terminfo/"
 
-# fonts: DejaVu for applications, Hack for the terminal
+# fonts, for the window manager and for anything started in the session
 for f in DejaVuSans DejaVuSans-Bold DejaVuSansMono DejaVuSansMono-Bold \
          DejaVuSerif DejaVuSerif-Bold; do
     cp "$A/usr/share/fonts/dejavu/$f.ttf" "$OUT/share/fonts/"
