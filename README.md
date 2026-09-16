@@ -25,6 +25,7 @@ where you left them.
 | `rdesk` | the command you run on your own machine |
 | `rdesk-session` | runs on the host to start, stop and report on a session |
 | `fvwm.rdesk` | example window manager configuration for remote sessions |
+| `src/` | FvwmScreenWatch, a small fvwm module of our own (see below) |
 | `build/` | builds the bundle from source |
 
 The bundle itself is not in the repository: build it with `build/build.sh`,
@@ -78,12 +79,31 @@ Everything is done with the mouse, and no binding uses a modifier key, so Alt,
 Super and Tab all reach the programs you are running rather than being caught by
 the window manager at either end.
 
-If you are familiar with fvwm, it should go smoothly.  With the default config,
-click on the desktop background to see a menu, which can launch a terminal
-(xterm).
+The default configuration is a traditional mouse-driven desktop:
+
+- focus follows the mouse, and clicking anywhere in a window brings it to the
+  front;
+- a bar along the bottom has a button for every window on the current desk:
+  click one to bring that window to the front, or to minimize it if it is
+  already in front. Minimized windows stay in the bar rather than as icons on
+  the desktop. Middle click a button for the window's menu;
+- the title bar has minimize, maximize and close buttons at the right, and
+  the window menu at the left; drag the title bar to move, a border to
+  resize, double click the title bar to shade;
+- the pager at the top left shows nine desks in a 3x3 grid; click one to go
+  there. Move a window to another desk by dragging it within the pager, by
+  dragging its title bar onto a pager square, or with "Send to desk" in the
+  window menu;
+- left click on the desktop background opens a menu that can launch a
+  terminal (xterm), middle click lists every window grouped by desk (pick one
+  to go to it), right click gives the session menu.
 
 The desktop starts at 1920x1200 and follows your viewer window when you resize
-or maximize it.
+or maximize it. fvwm 2 cannot notice such a resize by itself, so the
+configuration runs a small module of our own, FvwmScreenWatch, that restarts
+fvwm once the size has settled: everything stays where it is, and the bar,
+maximizing and window placement follow the new size. (Without it, fvwm would
+go on maximizing windows to the old size.)
 
 To end a session, use `rdesk host stop` from your own machine. There is
 deliberately no "quit" entry in the menus.
@@ -205,4 +225,14 @@ One patch is applied to an upstream source during the build, in `apps.sh`:
   contains `+`. It now only does that for a `+` that is a whole path element.
 
 `Xvnc` is built with an empty xkb binary directory so it finds `xkbcomp` on
-`PATH`, which is what lets the bundle work from any location.
+`PATH`, which is what lets the bundle work from any location. fvwm has its data
+directory compiled in as well, and reads its own defaults file from there at
+startup, so `rdesk-session` reads that file explicitly from the bundle; the
+startup error naming `/opt/rdesk/.../ConfigFvwmDefaults` in the session log is
+harmless.
+
+`src/FvwmScreenWatch.c` is built into an fvwm module and shipped with the
+others. It watches the root window for size changes and, once the size has
+held still for half a second, sends fvwm a command (`Restart` unless the
+`Module` line says otherwise). fvwm 2's own RandR handling is compiled out
+upstream.

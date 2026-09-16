@@ -3,45 +3,84 @@
 #
 # Keeps the look of the "Suspiciously Default-looking" config
 # (L) Carl Svensson, https://datagubbe.se/fvwm - colours, borders, 3x3 pager
-# and menus - driven entirely with the mouse.
+# and menus - and drives it with the mouse alone, the traditional way: a
+# click brings a window to the front, and a bar along the bottom lists the
+# windows on the current desk.
+#
+# The pager's nine squares are nine desks (not pages of one desk), so the
+# window list can say which one a window is on.  Windows move between desks
+# by dragging them in the pager, or from the window menu.
 #
 # There are no keyboard bindings and no mouse bindings that use a modifier,
 # so every key combination (Alt, Super, Tab...) reaches your applications,
 # and nothing collides with the window manager on the machine you connect from.
 #
-#   move a window      drag its title bar
-#   resize a window    drag a border or corner
-#   shade a window     double click its title bar
-#   raise / lower      right click the title bar or a border
-#   window menu        left click the title bar's left button (double click closes)
-#   maximize           left click the title bar's right button
-#   minimize           the title bar's small square; click the icon to get it back
-#   applications       left click the desktop background
-#   window list        middle click the desktop background
-#   session menu       right click the desktop background
-#   switch page        click a square in the pager
+#   focus                 follows the mouse
+#   bring to the front    click anywhere in a window, or on its button in
+#                         the bottom bar (which lists this desk's windows)
+#   minimize              the leftmost of the three buttons at the right of
+#                         the title bar; or click its bottom bar button while
+#                         it is in front.  Minimized windows stay in the bar.
+#   maximize              the middle button at the right of the title bar
+#   close                 the rightmost button (asks nothing)
+#   move a window         drag its title bar
+#   resize a window       drag a border or corner
+#   shade a window        double click its title bar
+#   lower                 right click the title bar or a border
+#   window menu           the button at the left of the title bar (double
+#                         click closes); or middle click the title bar or the
+#                         window's bottom bar button.  "Send to desk" is here.
+#   applications          left click the desktop background
+#   window list           middle click the desktop background: every window,
+#                         grouped by desk; pick one to go to it
+#   session menu          right click the desktop background
+#   switch desk           click a square in the pager
+#   move to another desk  drag the window in the pager, or drag its title bar
+#                         onto a pager square
 #
-# The pager is the only module used.
+# Modules used: FvwmPager, FvwmIconMan (the bottom bar) and FvwmScreenWatch
+# (restarts fvwm when the viewer resizes the desktop: fvwm 2 would not notice
+# by itself, and would go on maximizing windows to the old size).
 ###################################
 
 InfoStoreAdd terminal xterm
 ImagePath $HOME/.fvwm/icons:+
 CursorStyle "ROOT" "X_cursor"
 
+# fvwm's own defaults bind a few keys; take them out again
+Silent Key Tab A M -
+Silent Key F1 R A -
+Silent Key Help R A -
+Silent Key Escape A MC -
+
 ###################################
-# == Pager / desktops ==
+# == Pager / desks ==
 ###################################
 
-DeskTopSize 3 3
-EdgeResistance 150 150
+# Nine desks of one page each, shown as a 3x3 grid in the pager.
+DeskTopSize 1 1
+EdgeResistance 150
+Style * EdgeMoveDelay 150, EdgeMoveResistance 150
 EdgeScroll 0 0
+
+DesktopName 0 Desk 1
+DesktopName 1 Desk 2
+DesktopName 2 Desk 3
+DesktopName 3 Desk 4
+DesktopName 4 Desk 5
+DesktopName 5 Desk 6
+DesktopName 6 Desk 7
+DesktopName 7 Desk 8
+DesktopName 8 Desk 9
 
 *FvwmPagerBack #5d594d
 *FvwmPagerFore black
 *FvwmPagerHilight #7e7a5c
-*FvwmPagerFont none
-*FvwmPagerGeometry 150x90+0+0
+*FvwmPagerFont 5x8
+*FvwmPagerGeometry 150x120+0+0
 *FvwmPagerLabel FvwmPager
+*FvwmPager: Rows 3
+*FvwmPager: Columns 3
 *FvwmPager: WindowLabelFormat ""
 *FvwmPager: SolidSeparators
 
@@ -58,13 +97,32 @@ ColorSet 17 fg Gainsboro, bg Gray20
 Style * Colorset 17
 
 Style * DecorateTransient
-Style * MouseFocus
 TitleStyle LeftJustified
 
 Style *             Title, Handles, !MWMFunctions, NoDecorHint
 Style *             DepressableBorder, HandleWidth 6, BorderWidth 6
 Style "FvwmPager"   NoTitle, Sticky, WindowListSkip, NoHandles, NeverFocus
 Style "xmessage"    NoTitle, NoHandles, BorderWidth 0, FPLenient, WindowListSkip
+
+# Title bar buttons, right hand side: minimize (a low bar), maximize (a box)
+# and close (a cross).  The left hand button opens the window menu.
+ButtonStyle 6 Vector 5 30x70@1 70x70@1 70x80@0 30x80@0 30x70@1
+ButtonStyle 4 Vector 5 25x25@1 75x25@1 75x75@0 25x75@0 25x25@1
+ButtonStyle 2 Vector 8 25x25@1 75x75@0 75x75@4 25x75@1 75x25@0 75x25@4 25x25@1 25x25@1
+ButtonStyle 1 Vector 5 25x40@1 75x40@1 75x60@0 25x60@0 25x40@1
+
+###################################
+# == Focus ==
+###################################
+
+# Focus follows the mouse: the window under the pointer has the focus, and
+# keeps it while the pointer is over the desktop background (SloppyFocus;
+# MouseFocus would drop it there).  A click anywhere in a window brings it to
+# the front, and the click still goes to the program.  New windows get the
+# focus until the pointer moves into another window.
+Style * SloppyFocus, FPClickRaisesFocused, FPClickRaisesUnfocused
+Style * FPPassFocusClick, FPPassRaiseClick
+Style * FPGrabFocus, FPGrabFocusTransient
 
 ###################################
 # == Menu style ==
@@ -85,16 +143,67 @@ MenuStyle * BorderWidth 1, TitleUnderlines1, ItemFormat "  %l%>  "
 ClickTime 250
 OpaqueMoveSize -1
 Emulate Mwm
-Style * FPGrabFocus
-Style * FPGrabFocusTransient
 IgnoreModifiers L25
 
 # Place new windows automatically.  Without this fvwm asks you to position
 # every window by hand, which is tedious over a remote connection.
-Style * PositionPlacement Center, GrabFocusOff
+Style * PositionPlacement Center
 
-# Icons of iconified windows go along the top, clear of the pager.
-Style * IconBox 170 4 -4 -4, IconFill left top, IconTitle
+# Maximized and newly placed windows keep clear of the bottom bar.
+Style * EWMHMaximizeUseDynamicWorkingArea, EWMHPlacementUseDynamicWorkingArea
+EwmhBaseStruts 0 0 0 24
+
+###################################
+# == Bottom bar ==
+###################################
+
+# One button per window on the current desk, along the bottom of the screen.
+# Minimized windows have no icon on the desktop: they are just dimmed here.
+Style * NoIcon
+
+# Minimized (dimmed) and under the pointer.
+ColorSet 19 fg Gray60, bg Gray20
+ColorSet 20 fg white, bg Gray35
+
+*FvwmIconMan: Resolution desk
+*FvwmIconMan: UseWinList true
+*FvwmIconMan: Sort id
+*FvwmIconMan: Format "%t"
+*FvwmIconMan: Tips needed
+*FvwmIconMan: FollowFocus true
+*FvwmIconMan: DrawIcons false
+# the full width of the screen, one row; buttons narrow as windows are added
+*FvwmIconMan: ButtonGeometry $[vp.width]x24
+*FvwmIconMan: ManagerGeometry 1x1+0-0
+*FvwmIconMan: MaxButtonWidth 240
+*FvwmIconMan: Colorset 17
+*FvwmIconMan: FocusColorset 16
+*FvwmIconMan: IconColorset 19
+*FvwmIconMan: SelectColorset 20
+*FvwmIconMan: FocusAndSelectColorset 20
+*FvwmIconMan: IconAndSelectColorset 20
+*FvwmIconMan: PlainButton up
+*FvwmIconMan: FocusButton down
+*FvwmIconMan: IconButton flat
+*FvwmIconMan: ReliefThickness 1
+*FvwmIconMan: Action Mouse 0 A ret
+*FvwmIconMan: Action Mouse 1 A sendcommand BarClick
+*FvwmIconMan: Action Mouse 2 A sendcommand "Menu Window-Ops2"
+*FvwmIconMan: Action Mouse 3 A sendcommand "Menu Window-Ops2"
+
+Style "FvwmIconMan" NoTitle, NoHandles, BorderWidth 0, Sticky, StaysOnTop
+Style "FvwmIconMan" WindowListSkip, NeverFocus, FixedPosition, FixedSize
+
+# A click on a bar button minimizes the window if it is already in front
+# (nothing overlaps it), and otherwise brings it to the front.
+DestroyFunc BarClick
+AddToFunc BarClick
++ I ThisWindow (!Overlapped, !Shaded, !Iconic, CurrentDesk) Iconify true
++ I TestRc (Match) Break
++ I ThisWindow WindowShade off
++ I ThisWindow Iconify off
++ I ThisWindow Raise
++ I ThisWindow (AcceptsFocus) FlipFocus
 
 ###################################
 # == Window handling functions ==
@@ -115,13 +224,6 @@ AddToFunc RaiseOrResize
 + I Raise
 + M Resize
 
-# Icon: click restores the window.
-DestroyFunc RaiseAndFocus
-AddToFunc RaiseAndFocus
-+ I Iconify off
-+ I Raise
-+ I Focus
-
 # Menu entries, which resize or move with the pointer.
 DestroyFunc ResizeFromMenu
 AddToFunc ResizeFromMenu
@@ -138,15 +240,16 @@ AddToFunc MoveFromMenu
 # == Mouse bindings (no modifiers anywhere) ==
 ###################################
 
-# Title bar buttons, left to right: window menu (double click closes),
-# then iconify (small square) and maximize (big square) on the right.
+# Title bar buttons: the window menu at the left (double click closes), then
+# minimize, maximize and close at the right.
 Mouse 0 1 A Menu Window-Ops2 Close
-Mouse 0 4 A Iconify
-Mouse 0 2 A Maximize 100 100
+Mouse 0 6 A Iconify
+Mouse 0 4 A Maximize 100 100
+Mouse 0 2 A Close
 
 # Desktop background.
 Mouse 1 R A Menu RootMenu
-Mouse 2 R A WindowList
+Mouse 2 R A WindowList NoGeometry, NoHotkeys, NoCurrentDeskTitle, TitleForAllDesks, NoNumInDeskTitle
 Mouse 3 R A Menu System-Menu Nop
 
 # Title bar.
@@ -154,33 +257,44 @@ Mouse 1 T A RaiseMoveOrShade
 Mouse 2 T A Menu Window-Ops2
 Mouse 3 T A RaiseLower
 
-# Borders, corners and icons.
+# Borders and corners.
 Mouse 1 FS A RaiseOrResize
 Mouse 2 FS A Move
-Mouse 3 FSI A RaiseLower
-Mouse 1 I  A RaiseAndFocus
+Mouse 3 FS A RaiseLower
 
 ###################################
 # == Menus ==
 ###################################
 
 AddToMenu Window-Ops2
-+  "Move"        MoveFromMenu
-+  "Resize"      ResizeFromMenu
-+  "Shade"       WindowShade
-+  "Iconify"     Iconify
-+  "(Un)Stick"   Stick
-+  "Maximize"    Maximize
-+  ""            Nop
-+  "Delete"      Delete
-+  "Close"       Close
-+  "Destroy"     Destroy
++  "Move"          MoveFromMenu
++  "Resize"        ResizeFromMenu
++  "Shade"         WindowShade
++  "Minimize"      Iconify
++  "(Un)Stick"     Stick
++  "Maximize"      Maximize
++  "Send to desk"  Popup SendToDesk
++  ""              Nop
++  "Delete"        Delete
++  "Close"         Close
++  "Destroy"       Destroy
+
+AddToMenu SendToDesk
++  "Desk 1"  MoveToDesk 0 0
++  "Desk 2"  MoveToDesk 0 1
++  "Desk 3"  MoveToDesk 0 2
++  "Desk 4"  MoveToDesk 0 3
++  "Desk 5"  MoveToDesk 0 4
++  "Desk 6"  MoveToDesk 0 5
++  "Desk 7"  MoveToDesk 0 6
++  "Desk 8"  MoveToDesk 0 7
++  "Desk 9"  MoveToDesk 0 8
 
 AddToMenu RootMenu
 +  " Workspace Menu "  Title
 +  "Terminal"          Exec exec $[infostore.terminal]
 +  ""                  Nop
-+  "Window List"       WindowList
++  "Window List"       WindowList NoGeometry, NoHotkeys, NoCurrentDeskTitle, TitleForAllDesks, NoNumInDeskTitle
 +  "Refresh Screen"    Refresh
 +  "Restart fvwm"      Restart
 
@@ -203,7 +317,9 @@ AddToMenu System-Menu
 ###################################
 
 AddToFunc StartFunction
-+ I Module FvwmPager
++ I Module FvwmPager 0 8
++ I Module FvwmIconMan
++ I Module FvwmScreenWatch
 
 ###################################
 # == End of fvwm.rdesk ==

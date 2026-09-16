@@ -105,6 +105,15 @@ PYEOF
     touch /build/stamps/fvwm
 fi
 
+# FvwmScreenWatch: the session's own fvwm module, which restarts fvwm when the
+# viewer resizes the desktop (see src/FvwmScreenWatch.c for why)
+if [ ! -f stamps/screenwatch ] || [ /rdesk/src/FvwmScreenWatch.c -nt stamps/screenwatch ]; then
+    echo "== FvwmScreenWatch"
+    gcc -O2 -static -Wall -o $PREFIX/libexec/fvwm/2.7.0/FvwmScreenWatch \
+        /rdesk/src/FvwmScreenWatch.c -lX11 -lxcb -lXau -lXdmcp
+    touch /build/stamps/screenwatch
+fi
+
 echo "== built binaries:"
 for b in $PREFIX/bin/*; do
     printf '%s: %s\n' "$(basename "$b")" "$(file -b "$b" | cut -d, -f1-2)"

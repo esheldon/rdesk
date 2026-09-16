@@ -92,7 +92,12 @@ make_fvwm_config() {
         done
     fi
 
+    # fvwm reads its own defaults file (ConfigFvwmDefaults: the functions the
+    # WindowList command and EWMH window activation rely on, among others)
+    # from a path fixed at build time, which is not where this bundle is, so
+    # read it here from where it really is
     {
+        echo "Read $B/share/fvwm/ConfigFvwmDefaults"
         echo "ModulePath $B/libexec/fvwm/2.7.0"
         echo "ImagePath $B/share/fvwm/default-config/images:+"
         echo "SetEnv FVWM_DATADIR $B/share/fvwm"
@@ -218,7 +223,7 @@ case "${1:-start}" in
     start)  start ;;
     status) running && echo "$SOCK" || { echo "no session"; exit 1; } ;;
     version)
-        echo "rdesk bundle 2026-09-14, installed in $B"
+        echo "rdesk bundle 2026-09-15, installed in $B"
         echo "modules: $(ls "$B/libexec/fvwm/2.7.0" 2>/dev/null | wc -l) in $B/libexec/fvwm/2.7.0"
         "$B/bin/Xvnc" -version 2>&1 | grep -m 1 .
         ;;

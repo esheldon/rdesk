@@ -24,7 +24,8 @@ done
 
 # only the fvwm modules a session can use
 for m in FvwmButtons FvwmPager FvwmIconMan FvwmEvent FvwmBanner FvwmScript \
-         FvwmConsole FvwmForm FvwmCommandS FvwmBacker FvwmAnimate FvwmIdent; do
+         FvwmConsole FvwmForm FvwmCommandS FvwmBacker FvwmAnimate FvwmIdent \
+         FvwmScreenWatch; do
     [ -f "$R/libexec/fvwm/2.7.0/$m" ] && cp "$R/libexec/fvwm/2.7.0/$m" "$OUT/libexec/fvwm/2.7.0/"
 done
 
