@@ -2,15 +2,14 @@
 <!--
     jwm.rdesk - JWM configuration for remote desktop (rdesk) sessions
 
-    JWM's stock configuration (example.jwmrc from JWM 2.4.6), in the colours
-    of the earlier fvwm.rdesk, which took them from the "Suspiciously
-    Default-looking" fvwm config, (L) Carl Svensson, https://datagubbe.se/fvwm
+    Based on JWM's stock configuration (example.jwmrc from JWM 2.4.6)
+    with subdued colors
 
       active window        beige on #5d594d
       inactive windows     Gainsboro on Gray20
       bottom bar           as the windows; minimized windows Gray60
       pager                #5d594d desks, #7e7a5c for the current one
-      menus                fvwm's default black on gray, SteelBlue4 highlight
+      menus                same as inactive window
       desktop background   grey15
 
     One other change from the stock configuration: the clock uses "%I" rather
@@ -82,6 +81,7 @@
             <Opacity>1.0</Opacity>
         </Active>
     </WindowStyle>
+
     <TrayStyle decorations="motif">
         <Font>Sans-10</Font>
         <Background>#333333</Background>        <!-- Gray20 -->
@@ -92,6 +92,7 @@
             <Background>#595959</Background>    <!-- Gray35 -->
         </Active>
     </TrayStyle>
+
     <TaskListStyle list="all" group="true">
       <Font>Sans-10</Font>
       <Active>
@@ -105,6 +106,7 @@
       <Foreground>#DCDCDC</Foreground>          <!-- Gainsboro -->
       <Background>#333333</Background>          <!-- Gray20 -->
     </TaskListStyle>
+
     <PagerStyle>
         <Outline>#000000</Outline>
         <Foreground>#333333</Foreground>        <!-- windows: Gray20 -->
@@ -115,16 +117,18 @@
             <Background>#7E7A5C</Background>    <!-- the current desk -->
         </Active>
     </PagerStyle>
+
     <MenuStyle decorations="motif">
         <Font>Sans-10</Font>
-        <Foreground>#000000</Foreground>        <!-- black -->
-        <Background>#BEBEBE</Background>        <!-- gray -->
+        <Foreground>#DCDCDC</Foreground>        <!-- Gainsporo -->
+        <Background>#333333</Background>        <!-- Gray20 -->
         <Active>
             <Foreground>#FFFFFF</Foreground>    <!-- white -->
             <Background>#36648B</Background>    <!-- SteelBlue4 -->
         </Active>
         <Opacity>0.85</Opacity>
     </MenuStyle>
+
     <PopupStyle>
         <Font>Sans-10</Font>
         <Foreground>#000000</Foreground>
