@@ -178,6 +178,11 @@ start() {
     DISPLAY=$display
     export DISPLAY
     export FONTCONFIG_FILE=$STATE/fonts.conf
+    # Xvnc has no DRI3 (or GLX), so OpenGL programs always end up with Mesa's
+    # software renderer; saying so up front spares every one of them a failed
+    # attempt at hardware rendering and the warning it prints.  Your profile
+    # runs later, so it can still unset this.
+    export LIBGL_ALWAYS_SOFTWARE=1
     # if the window manager ever exits, shut the display server down with it and
     # clear the socket, so the next connection starts a clean session
     nohup sh -c "sh '$STATE/wm-start' >> '$LOG' 2>&1

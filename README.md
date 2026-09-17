@@ -81,10 +81,9 @@ fvwm setup:
 - the title bar has minimize, maximize and close buttons at the right and the
   window menu at the left; drag the title bar to move, a border to resize;
   double click the title bar to maximize, scroll over it to shade;
-- left or middle click on the desktop background opens the main menu, with a
-  terminal (xterm) and "Restart", which reloads the configuration; its
-  Applications and Utilities entries are JWM's examples, and do nothing for
-  programs the host does not have. The scroll wheel there switches desks;
+- left or middle click on the desktop background opens the main menu: a
+  terminal (xterm), "Restart", which reloads the configuration, and "Exit".
+  The scroll wheel there switches desks;
 - keys: Alt+Tab cycles windows, Alt+F4 closes one, Alt+1 to Alt+4 and
   Alt+arrows switch desks, Alt+F1 opens the main menu, Alt+F2 the window
   menu, Alt+F10 maximizes, and holding Alt lets you drag a window from
@@ -173,7 +172,9 @@ connection, so nothing is exposed even on a host with thousands of users.
 ## Limits
 
 - **x86_64 Linux only**, though any kernel and any glibc: the programs are static.
-- **No OpenGL** and **no sound**.
+- **No hardware OpenGL** and **no sound**. Xvnc has no GLX, so programs that
+  need it cannot draw; programs that use EGL, such as alacritty, get OpenGL
+  from the host's Mesa software renderer.
 - **One session per host.**
 - On load-balanced login pools, connect to a specific node's name, or you may not
   land on the node where your session is running.
@@ -196,6 +197,13 @@ Start with `rdesk-session version` and `rdesk-session log 40` on the host.
   once with `loginctl enable-linger`, and sessions survive logouts. A host that
   merely clears your runtime directory at logout leaves the session running
   with its bookkeeping gone; `rdesk-session stop` still finds and stops it.
+- **`xkbcommon: ERROR: .../Compose:...: unrecognized keysym` when a program
+  starts** (alacritty, for one): the host's Compose file is newer than its
+  libxkbcommon. It is harmless, since only the compose sequences with that key
+  are skipped. To silence it, make a copy without those lines once on the
+  host,
+  `grep -v dead_hamza /usr/share/X11/locale/en_US.UTF-8/Compose > ~/.XCompose-rdesk`,
+  and add `export XCOMPOSEFILE=~/.XCompose-rdesk` to your profile there.
 - **Missing PATH entries in the desktop's terminals:** the desktop is started
   through your login shell, so `/etc/profile`, `/etc/profile.d` and your own
   profile all apply. If something is still missing, it is set only for
