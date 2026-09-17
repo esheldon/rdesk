@@ -22,6 +22,17 @@ for b in jwm xauth xkbcomp; do
     cp "$R/bin/$b" "$OUT/bin/"
 done
 
+# the optional programs, with feh's fonts and images
+if [ "${RDESK_X11PROGRAMS:-0}" = 1 ]; then
+    X=$A/opt/x11programs
+    [ -x "$X/bin/mupdf" ] && [ -x "$X/bin/feh" ] || {
+        echo "mupdf and feh are not built yet in $X; run build/build.sh with RDESK_X11PROGRAMS=1" >&2
+        exit 1
+    }
+    cp "$X/bin/mupdf" "$X/bin/feh" "$OUT/bin/"
+    cp -r "$X/share/feh" "$OUT/share/"
+fi
+
 strip "$OUT"/bin/* 2>/dev/null || true
 
 # data: keyboard data

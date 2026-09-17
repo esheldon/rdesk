@@ -118,6 +118,44 @@ remove the `Background` tag from your copy of the configuration, or have JWM
 run your command for it: `<Background type="command">xsetroot -solid
 steelblue</Background>`.
 
+## A PDF viewer and an image viewer
+
+For hosts that lack them, the bundle can carry two programs of its own: `mupdf`,
+a PDF viewer, and `feh`, an image viewer. They are left out unless the bundle
+is built with them (see [Building the bundle](#building-the-bundle)), and are
+then on the desktop's `PATH` like the rest of the bundle. On a host with its own
+program of the same name, the order of `PATH` there decides which one runs;
+`which feh` in a desktop terminal tells.
+
+`mupdf` has no menus; everything is a key:
+
+| Key | Does |
+|---|---|
+| `/`, `?` | search forwards, backwards; then `n`, `N` for the next and previous match |
+| `r` | reload the file, after it has changed |
+| space, `b` | next, previous page (also `.` and `,`, Page Down and Page Up) |
+| `123g`, `G` | go to page 123, to the last page |
+| `+`, `-`, `W`, `Z` | zoom in, out, to the window's width, to the whole page |
+| `m`, `t` | mark this page, go back to the mark |
+| `I` | invert colours |
+| `q` | quit |
+
+Drag with the right button to select text, for pasting with the middle button;
+Ctrl+C then copies it to the clipboard as well. Click a link to follow it. A
+script that rebuilds a document can have every `mupdf` showing it reload with
+`pkill -HUP mupdf`. It does not reload on its own, and has no contents panel,
+continuous scrolling or printing. Besides PDF it opens EPUB, XPS, CBZ and
+images. The standard PDF fonts are built in, but not MuPDF's Noto and CJK fonts,
+so a document that uses scripts such as Chinese without embedding its fonts
+shows boxes for that text.
+
+`feh` shows the images named on its command line, or every image in a
+directory: space and Backspace (or the arrow keys, or a left click) go through
+them, `m` or a right click opens a menu, `d` shows the file name and `q` quits.
+`feh -t dir` shows thumbnails. An image that changes on disk is shown again.
+It reads PNG, JPEG, GIF, WebP, BMP, PNM, TGA, XPM, ICO and a few more, also
+compressed with gzip or bzip2, but not TIFF.
+
 ## Settings
 
 On your machine, as environment variables for `rdesk`:
@@ -161,7 +199,8 @@ ssh host '~/local/rdesk/bin/rdesk-session stop'      # same as rdesk host stop
 `Xvnc` from TigerVNC is both the X server and the VNC server — the same engine
 ThinLinc uses — so the desktop lives entirely on the host and only compressed
 screen updates cross the network. JWM manages the windows; the programs you
-run, terminal included, come from the host.
+run, terminal included, come from the host, apart from the bundle's optional
+PDF and image viewers.
 
 The session listens on a Unix socket that only your account can open, with no
 network listener at all, and the X display is protected by a cookie in your
@@ -180,7 +219,8 @@ connection, so nothing is exposed even on a host with thousands of users.
   land on the node where your session is running.
 - Programs you run inside the session come from the host, so they need whatever
   they normally need. The bundle provides the desktop, not the applications:
-  the terminal is the host's `xterm`.
+  the terminal is the host's `xterm`. The exceptions are the
+  [PDF and image viewers](#a-pdf-viewer-and-an-image-viewer), if built in.
 
 
 ## If something looks wrong
@@ -226,6 +266,16 @@ Everything lands in `work/` (override with `RDESK_WORK`), ending with
 fixing one thing is cheap; delete `work/` to start over. `JOBS` sets build
 parallelism.
 
+To include the [PDF and image viewers](#a-pdf-viewer-and-an-image-viewer):
+
+```sh
+RDESK_X11PROGRAMS=1 build/build.sh
+```
+
+That adds about two minutes to the build and 8 MB to the tarball. They go into the
+bundle only when the variable is set, so a later `build/build.sh` or
+`build/assemble.sh` without it leaves them out again.
+
 | Script | What it does |
 |---|---|
 | `build/build.sh` | runs everything below in order |
@@ -235,6 +285,8 @@ parallelism.
 | `build/pam.sh` | a static `libpam.a`, which TigerVNC insists on linking |
 | `build/xvnc.sh` | `Xvnc`: TigerVNC's server code patched into the X.Org server |
 | `build/apps.sh` | `xkbcomp`, `xauth`, Pango and JWM |
+| `build/x11programs.sh` | optional: `mupdf` and `feh`, with imlib2 for `feh` |
+| `build/patches/` | the changes `x11programs.sh` makes to imlib2 and `feh` |
 | `build/assemble.sh` | collects it all into the bundle and the tarball |
 
 `Xvnc` is built with an empty xkb binary directory so it finds `xkbcomp` on
@@ -245,3 +297,12 @@ the bundle's copy with `-f` unless you have a configuration of your own.
 JWM draws its text with Pango; without it, JWM has only the X server's bitmap
 fonts. Alpine has no static Pango, so `apps.sh` builds one (without cairo) for
 JWM to link against.
+
+`feh` reads images with imlib2, which loads the code for each image format as
+a module with `dlopen()`; a static program cannot do that.
+`imlib2-static-loaders.patch` lets these loaders be compiled into the library
+instead, and `x11programs.sh` does so for the formats whose libraries Alpine
+has static builds of. `feh-data-path.patch` has `feh` find its fonts and menu
+image next to where the program is, like the rest of the bundle, rather than
+at a path fixed when it is built; without its fonts, `feh` exits when it draws
+text. MuPDF needs no changes: it carries its own libraries and fonts.

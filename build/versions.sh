@@ -11,6 +11,11 @@ XKBCOMP=1.5.0
 XAUTH=1.1.5
 LINUX_PAM=1.7.2
 
+# the optional programs of x11programs.sh
+MUPDF=1.28.4
+IMLIB2=1.12.7
+FEH=3.13.1
+
 # X libraries Alpine ships without a static build, in dependency order
 XLIBS="libXau-1.0.12 libXdmcp-1.1.5 libfontenc-1.1.9 libXfont2-2.0.9
        libXfixes-6.0.2 libXrender-0.9.12 libXrandr-1.5.5 libXcursor-1.2.3

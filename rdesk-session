@@ -99,6 +99,9 @@ EOF
 # profile, locale settings and so on.  Nothing else in the chain that starts
 # a session is a login shell, so without this they would all be missing.
 #
+# A profile that sets PATH outright, as Debian's /etc/profile does, drops this
+# bundle's programs from it, so they are added back at the end.
+#
 # jwm uses your own configuration if you have one ($XDG_CONFIG_HOME/jwm/jwmrc,
 # ~/.config/jwm/jwmrc or ~/.jwmrc), and otherwise jwm.rdesk from this bundle,
 # since its compiled-in fallback is a path on the build machine.  The check
@@ -107,6 +110,10 @@ make_wm_start() {
     cat > "$STATE/wm-exec" <<EOF
 #!/bin/sh
 # run by your login shell (see wm-start): jwm, with your own config if you have one
+case ":\$PATH:" in
+    *":$B/bin:"*) ;;
+    *) PATH="\$PATH:$B/bin"; export PATH ;;
+esac
 for f in "\${XDG_CONFIG_HOME:-\$HOME/.config}/jwm/jwmrc" "\$HOME/.config/jwm/jwmrc" "\$HOME/.jwmrc"; do
     [ -f "\$f" ] && exec "$B/bin/jwm"
 done
