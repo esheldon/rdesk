@@ -5,10 +5,16 @@ ALPINE_BRANCH=v3.24
 
 TIGERVNC=1.16.2
 XSERVER=21.1.24
-FVWM=2.7.0
+JWM=2.4.6
+PANGO=1.57.1
 XKBCOMP=1.5.0
 XAUTH=1.1.5
 LINUX_PAM=1.7.2
+
+# the optional programs of x11programs.sh
+MUPDF=1.28.4
+IMLIB2=1.12.7
+FEH=3.13.1
 
 # X libraries Alpine ships without a static build, in dependency order
 XLIBS="libXau-1.0.12 libXdmcp-1.1.5 libfontenc-1.1.9 libXfont2-2.0.9

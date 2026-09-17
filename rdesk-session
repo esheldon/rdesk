@@ -66,45 +66,6 @@ running() {
     [ -S "$SOCK" ] && session_pid > /dev/null
 }
 
-# fvwm has its module and data directories compiled in, so it is started with a
-# small generated file that points at this bundle and then reads your own
-# ~/.fvwm/config unchanged.  Your config therefore needs no bundle-specific
-# paths, and still works if the bundle is moved.
-make_fvwm_config() {
-    mkdir -p "$HOME/.fvwm"
-
-    # ~/.fvwm/fvwm.rdesk is used in preference to your own ~/.fvwm/config, since
-    # a config written for a local desktop usually binds keys and Alt-drags that
-    # the window manager you connect from swallows.  Delete fvwm.rdesk to use
-    # your own config here instead.
-    if [ ! -e "$HOME/.fvwm/fvwm.rdesk" ] && [ ! -e "$HOME/.fvwm/config" ]; then
-        cp "$B/share/fvwm/fvwm.rdesk" "$HOME/.fvwm/fvwm.rdesk"
-    fi
-    if [ -e "$HOME/.fvwm/fvwm.rdesk" ]; then
-        config=$HOME/.fvwm/fvwm.rdesk
-    else
-        # your own config may use fvwm's helper scripts, which are looked up in
-        # ~/.fvwm first; fvwm.rdesk needs none of them
-        config=$HOME/.fvwm/config
-        for f in "$B"/share/fvwm/FvwmScript-* "$B"/share/fvwm/FvwmForm-* \
-                 "$B"/share/fvwm/Config*; do
-            [ -f "$f" ] && [ ! -e "$HOME/.fvwm/${f##*/}" ] && cp "$f" "$HOME/.fvwm/"
-        done
-    fi
-
-    # fvwm reads its own defaults file (ConfigFvwmDefaults: the functions the
-    # WindowList command and EWMH window activation rely on, among others)
-    # from a path fixed at build time, which is not where this bundle is, so
-    # read it here from where it really is
-    {
-        echo "Read $B/share/fvwm/ConfigFvwmDefaults"
-        echo "ModulePath $B/libexec/fvwm/2.7.0"
-        echo "ImagePath $B/share/fvwm/default-config/images:+"
-        echo "SetEnv FVWM_DATADIR $B/share/fvwm"
-        echo "Read $config"
-    } > "$STATE/fvwm-init"
-}
-
 # Font setup for the session: the bundle's own fonts plus whatever the host
 # has, so programs started from the desktop keep the host's font setup.  The
 # file is written with absolute paths, since fontconfig's relative prefixes do
@@ -137,11 +98,31 @@ EOF
 # gets: the PATH additions from /etc/profile and /etc/profile.d, your own
 # profile, locale settings and so on.  Nothing else in the chain that starts
 # a session is a login shell, so without this they would all be missing.
-make_fvwm_start() {
-    cat > "$STATE/fvwm-start" <<EOF
+#
+# A profile that sets PATH outright, as Debian's /etc/profile does, drops this
+# bundle's programs from it, so they are added back at the end.
+#
+# jwm uses your own configuration if you have one ($XDG_CONFIG_HOME/jwm/jwmrc,
+# ~/.config/jwm/jwmrc or ~/.jwmrc), and otherwise jwm.rdesk from this bundle,
+# since its compiled-in fallback is a path on the build machine.  The check
+# runs after your profile, which may set XDG_CONFIG_HOME.
+make_wm_start() {
+    cat > "$STATE/wm-exec" <<EOF
+#!/bin/sh
+# run by your login shell (see wm-start): jwm, with your own config if you have one
+case ":\$PATH:" in
+    *":$B/bin:"*) ;;
+    *) PATH="\$PATH:$B/bin"; export PATH ;;
+esac
+for f in "\${XDG_CONFIG_HOME:-\$HOME/.config}/jwm/jwmrc" "\$HOME/.config/jwm/jwmrc" "\$HOME/.jwmrc"; do
+    [ -f "\$f" ] && exec "$B/bin/jwm"
+done
+exec "$B/bin/jwm" -f "$B/share/jwm/jwm.rdesk"
+EOF
+    cat > "$STATE/wm-start" <<EOF
 #!/bin/sh
 # start the window manager as your login shell would: see rdesk-session
-cmd='exec "$B/bin/fvwm" -f "$STATE/fvwm-init"'
+cmd='exec sh "$STATE/wm-exec"'
 if command -v bash > /dev/null 2>&1; then
     # bash can give any shell a login name (argv[0] beginning with "-"),
     # which is what makes it a login shell; this also works for tcsh, which
@@ -155,8 +136,7 @@ EOF
 start() {
     running && { echo "$SOCK"; return 0; }
     rm -f "$SOCK" "$XAUTH" "$STATE/display"
-    make_fvwm_config
-    make_fvwm_start
+    make_wm_start
     make_fonts_conf
 
     PATH=$B/bin:$PATH
@@ -205,9 +185,14 @@ start() {
     DISPLAY=$display
     export DISPLAY
     export FONTCONFIG_FILE=$STATE/fonts.conf
+    # Xvnc has no DRI3 (or GLX), so OpenGL programs always end up with Mesa's
+    # software renderer; saying so up front spares every one of them a failed
+    # attempt at hardware rendering and the warning it prints.  Your profile
+    # runs later, so it can still unset this.
+    export LIBGL_ALWAYS_SOFTWARE=1
     # if the window manager ever exits, shut the display server down with it and
     # clear the socket, so the next connection starts a clean session
-    nohup sh -c "sh '$STATE/fvwm-start' >> '$LOG' 2>&1
+    nohup sh -c "sh '$STATE/wm-start' >> '$LOG' 2>&1
                  p=\$(cat '$PIDFILE' 2>/dev/null)
                  if [ -n \"\$p\" ] &&
                     tr '\\0' ' ' < /proc/\$p/cmdline 2>/dev/null | grep -qF -- '$SOCK'
@@ -224,7 +209,7 @@ case "${1:-start}" in
     status) running && echo "$SOCK" || { echo "no session"; exit 1; } ;;
     version)
         echo "rdesk bundle 2026-09-15, installed in $B"
-        echo "modules: $(ls "$B/libexec/fvwm/2.7.0" 2>/dev/null | wc -l) in $B/libexec/fvwm/2.7.0"
+        "$B/bin/jwm" -v 2>&1 | grep -m 1 .
         "$B/bin/Xvnc" -version 2>&1 | grep -m 1 .
         ;;
     log)    # log [lines]: what the session and its programs have printed

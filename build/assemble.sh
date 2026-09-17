@@ -14,25 +14,28 @@ TARBALL=${RDESK_TARBALL:-$WORK/rdesk-static-x86_64.tar.gz}
 [ -d "$R/bin" ] || { echo "nothing built yet in $R; run build/build.sh" >&2; exit 1; }
 
 rm -rf "$OUT"
-mkdir -p "$OUT"/{bin,libexec/fvwm/2.7.0,share/fvwm,share/X11,share/fonts,share/xfonts,cache}
+mkdir -p "$OUT"/{bin,share/jwm,share/X11,share/fonts,share/xfonts,cache}
 
 # programs
 cp "$A/build/tvbuild/unix/xserver/hw/vnc/Xvnc" "$OUT/bin/"
-for b in fvwm fvwm-root xauth xkbcomp FvwmCommand; do
-    [ -f "$R/bin/$b" ] && cp "$R/bin/$b" "$OUT/bin/"
+for b in jwm xauth xkbcomp; do
+    cp "$R/bin/$b" "$OUT/bin/"
 done
 
-# only the fvwm modules a session can use
-for m in FvwmButtons FvwmPager FvwmIconMan FvwmEvent FvwmBanner FvwmScript \
-         FvwmConsole FvwmForm FvwmCommandS FvwmBacker FvwmAnimate FvwmIdent \
-         FvwmScreenWatch; do
-    [ -f "$R/libexec/fvwm/2.7.0/$m" ] && cp "$R/libexec/fvwm/2.7.0/$m" "$OUT/libexec/fvwm/2.7.0/"
-done
+# the optional programs, with feh's fonts and images
+if [ "${RDESK_X11PROGRAMS:-0}" = 1 ]; then
+    X=$A/opt/x11programs
+    [ -x "$X/bin/mupdf" ] && [ -x "$X/bin/feh" ] || {
+        echo "mupdf and feh are not built yet in $X; run build/build.sh with RDESK_X11PROGRAMS=1" >&2
+        exit 1
+    }
+    cp "$X/bin/mupdf" "$X/bin/feh" "$OUT/bin/"
+    cp -r "$X/share/feh" "$OUT/share/"
+fi
 
-strip "$OUT"/bin/* "$OUT"/libexec/fvwm/2.7.0/* 2>/dev/null || true
+strip "$OUT"/bin/* 2>/dev/null || true
 
-# data: fvwm's stock config and images, keyboard data
-cp -r "$R/share/fvwm/." "$OUT/share/fvwm/"
+# data: keyboard data
 cp -r "$A/usr/share/X11/xkb" "$OUT/share/X11/"
 
 # fonts, for the window manager and for anything started in the session
@@ -56,7 +59,7 @@ cp "$A/usr/share/fonts/juliamono/JuliaMono-Regular.ttf" "$OUT/share/fonts/"
 cp -r "$A/usr/share/fonts/misc" "$OUT/share/xfonts/"
 
 # the parts kept in this repo
-cp "$REPO/fvwm.rdesk" "$OUT/share/fvwm/fvwm.rdesk"
+cp "$REPO/jwm.rdesk" "$OUT/share/jwm/jwm.rdesk"
 cp "$REPO/rdesk-session" "$OUT/bin/rdesk-session"
 chmod +x "$OUT/bin/rdesk-session"
 

@@ -9,7 +9,8 @@
 # over, delete the work directory.
 #
 # Needs: curl, tar, and roughly 3 GB of disk.  Takes about half an hour.
-# Set JOBS to change build parallelism (default 8).
+# Set JOBS to change build parallelism (default 8), and RDESK_X11PROGRAMS=1 to
+# add the optional programs, mupdf and feh, for hosts that lack such programs.
 
 set -eu
 
@@ -23,5 +24,8 @@ export RDESK_WORK=$WORK
 "$WORK/enter" /bin/sh /rdesk/build/pam.sh
 "$WORK/enter" /bin/sh /rdesk/build/xvnc.sh
 "$WORK/enter" /bin/sh /rdesk/build/apps.sh
+if [ "${RDESK_X11PROGRAMS:-0}" = 1 ]; then
+    "$WORK/enter" /bin/sh /rdesk/build/x11programs.sh
+fi
 
 "$REPO/build/assemble.sh"

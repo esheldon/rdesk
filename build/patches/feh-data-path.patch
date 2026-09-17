@@ -1,0 +1,73 @@
+--- a/src/imlib.c
++++ b/src/imlib.c
+@@ -125,8 +125,11 @@
+ void init_imlib_fonts(void)
+ {
+ 	/* Set up the font stuff */
++	char *fonts = feh_data_path("fonts");
++
+ 	imlib_add_path_to_font_path(".");
+-	imlib_add_path_to_font_path(PREFIX "/share/feh/fonts");
++	imlib_add_path_to_font_path(fonts);
++	free(fonts);
+ 
+ 	return;
+ }
+--- a/src/menu.c
++++ b/src/menu.c
+@@ -136,7 +136,10 @@
+ 	menus = l;
+ 
+ 	if (!bg) {
+-		feh_load_image_char(&bg, PREFIX "/share/feh/images/menubg_default.png");
++		char *file = feh_data_path("images/menubg_default.png");
++
++		feh_load_image_char(&bg, file);
++		free(file);
+ 		if (bg) {
+ 			border.left = border.right = border.top = border.bottom
+ 				= 4;
+--- a/src/utils.c
++++ b/src/utils.c
+@@ -99,6 +99,31 @@
+ 	return p;
+ }
+ 
++/* The path of one of feh's data files: share/feh/NAME next to the directory
++ * the running program is in, so that feh finds its fonts and images wherever
++ * it has been installed.  PREFIX's copy only if the program cannot be found. */
++char *feh_data_path(const char *name)
++{
++	static char *dir = NULL;
++	char exe[PATH_MAX], *slash;
++	ssize_t n;
++
++	if (!dir) {
++		n = readlink("/proc/self/exe", exe, sizeof(exe) - 1);
++		if (n > 0) {
++			exe[n] = '\0';
++			if ((slash = strrchr(exe, '/')))    /* drop /feh */
++				*slash = '\0';
++			if ((slash = strrchr(exe, '/')))    /* drop /bin */
++				*slash = '\0';
++			dir = estrjoin("", exe, "/share/feh", NULL);
++		} else {
++			dir = estrdup(PREFIX "/share/feh");
++		}
++	}
++	return estrjoin("/", dir, name, NULL);
++}
++
+ char *estrjoin(const char *separator, ...)
+ {
+ 	char *string, *s;
+--- a/src/utils.h
++++ b/src/utils.h
+@@ -43,6 +43,7 @@
+ void *_emalloc(size_t n);
+ void *_erealloc(void *ptr, size_t n);
+ char *estrjoin(const char *separator, ...);
++char *feh_data_path(const char *name);
+ char path_is_url(char *path);
+ char *feh_unique_filename(char *path, char *basename);
+ char *ereadfile(char *path);

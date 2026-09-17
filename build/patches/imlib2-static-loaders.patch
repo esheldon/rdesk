@@ -1,0 +1,106 @@
+--- a/src/lib/loaders.c
++++ b/src/lib/loaders.c
+@@ -184,6 +184,9 @@
+ {
+     ImlibLoader    *l, *l_prev;
+     ImlibLoaderModule *m;
++#ifdef IMLIB2_STATIC_LOADERS
++    const ImlibStaticLoader *sl;
++#endif
+ 
+     DP("%s: %s\n", __func__, file);
+ 
+@@ -204,6 +207,22 @@
+     if (!l)
+         goto bail;
+ 
++#ifdef IMLIB2_STATIC_LOADERS
++    /* "file" is a loader name: see __imlib_static_loaders */
++    l->handle = NULL;
++    l->module = NULL;
++    for (sl = __imlib_static_loaders; sl->name; sl++)
++    {
++        if (strcmp(file, sl->name) == 0)
++        {
++            l->module = sl->module;
++            break;
++        }
++    }
++    m = l->module;
++    if (!m)
++        goto bail;
++#else
+     l->handle = dlopen(file, RTLD_NOW | RTLD_LOCAL);
+     if (!l->handle)
+     {
+@@ -217,12 +236,14 @@
+         DP("%s: dlerror: %s\n", __func__, dlerror());
+         goto bail;
+     }
++#endif
+ 
+     /* Check version and that we have at least load() or save() */
+     if (m->ldr_version != IMLIB2_LOADER_VERSION ||
+         !m->formats || m->num_formats <= 0 || !(m->load || m->save))
+     {
+-        dlclose(l->handle);
++        if (l->handle)
++            dlclose(l->handle);
+         goto bail;
+     }
+ 
+@@ -290,6 +311,20 @@
+ 
+     DP("%s\n", __func__);
+ 
++#ifdef IMLIB2_STATIC_LOADERS
++    {
++        const ImlibStaticLoader *sl;
++
++        for (sl = __imlib_static_loaders; sl->name; sl++)
++        {
++            if (!__imlib_LookupLoaderByModulePath(sl->name))
++                __imlib_ProduceLoader(sl->name);
++        }
++        loaders_loaded = 1;
++        return;
++    }
++#endif
++
+     /* list all the loaders imlib can find */
+     list = __imlib_ModulesList(__imlib_PathToLoaders(), &num);
+     /* no loaders? well don't load anything */
+@@ -343,7 +378,11 @@
+     l = NULL;
+     if (kl)
+     {
++#ifdef IMLIB2_STATIC_LOADERS
++        dso = strdup(kl->dso);
++#else
+         dso = __imlib_ModuleFind(__imlib_PathToLoaders(), kl->dso);
++#endif
+         l = __imlib_LookupLoaderByModulePath(dso);
+         if (!l)
+             l = __imlib_ProduceLoader(dso);
+--- a/src/lib/loaders.h
++++ b/src/lib/loaders.h
+@@ -26,6 +26,19 @@
+     const char     *name;
+ };
+ 
++#ifdef IMLIB2_STATIC_LOADERS
++/* A statically linked program cannot dlopen() the loader modules, so they are
++ * compiled into the library instead, each with its "loader" symbol renamed.
++ * The build supplies this table of them, ending with a NULL name; each is
++ * named as its module file would be, e.g. "png". */
++typedef struct {
++    const char     *name;
++    ImlibLoaderModule *module;
++} ImlibStaticLoader;
++
++extern const ImlibStaticLoader __imlib_static_loaders[];
++#endif
++
+ void            __imlib_RemoveAllLoaders(void);
+ ImlibLoader   **__imlib_GetLoaderList(void);
+ 
