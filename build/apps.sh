@@ -1,5 +1,5 @@
 #!/bin/sh
-# Build the rest of the session as static binaries: xkbcomp, xauth and fvwm.
+# Build the rest of the session as static binaries: xkbcomp, xauth and jwm.
 # Runs inside the Alpine build tree (see bootstrap.sh).
 
 set -e
@@ -12,11 +12,6 @@ APP=https://www.x.org/releases/individual/app
 export PKG_CONFIG=/usr/local/bin/pkg-config-static
 export LDFLAGS="-static"
 export CFLAGS="-O2"
-
-# Static linking needs every dependency named explicitly, in dependent-first
-# order; shared libraries would have carried these along themselves.
-XLIBS_LINK="-lXrender -lXfixes -lXext -lSM -lICE -lfontconfig -lfreetype -lexpat \
--lpng16 -lbz2 -lbrotlidec -lbrotlicommon -lz -lxcb -lXau -lXdmcp -lm"
 
 fetch() {   # download (once), unpack fresh, cd into the source
     file=/build/src/${1##*/}
@@ -47,71 +42,37 @@ if [ ! -f stamps/xauth ]; then
     touch /build/stamps/xauth
 fi
 
-# fvwm 2: the window manager
-if [ ! -f stamps/fvwm ]; then
-    echo "== fvwm"
-    fetch https://github.com/fvwmorg/fvwm/releases/download/$FVWM/fvwm-$FVWM.tar.gz
-
-    # fvwm treats the first '+' anywhere in ModulePath/ImagePath as "the previous
-    # path", so a directory whose name contains '+' breaks module loading.
-    # Only accept '+' when it is a whole path element.
-    python3 - <<'PYEOF'
-src = open('libs/System.c').read()
-old = """	int found_plus = strchr(newpath, '+') != NULL;"""
-new = """	int found_plus = find_plus_element(stripped_path) != NULL;"""
-assert old in src, "setPath not as expected"
-src = src.replace(old, new)
-old2 = """		char *p = strchr(*p_path, '+');
-		memmove(p + oldlen, p + 1, strlen(p + 1) + 1);
-		memmove(p, oldpath, oldlen);"""
-new2 = """		char *p = find_plus_element(*p_path);
-
-		if (p != NULL)
-		{
-			memmove(p + oldlen, p + 1, strlen(p + 1) + 1);
-			memmove(p, oldpath, oldlen);
-		}"""
-assert old2 in src
-src = src.replace(old2, new2)
-helper = """/* A '+' is the "previous path" marker only when it is a whole element;
- * inside a directory name (/direct/astro+u/...) it is part of the name. */
-static char *find_plus_element(char *path)
-{
-	char *p;
-
-	for (p = strchr(path, '+'); p != NULL; p = strchr(p + 1, '+'))
-	{
-		if ((p == path || p[-1] == ':') && (p[1] == '\\0' || p[1] == ':'))
-		{
-			return p;
-		}
-	}
-
-	return NULL;
-}
-
-void setPath(char **p_path, const char *newpath, int free_old_path)"""
-src = src.replace("void setPath(char **p_path, const char *newpath, int free_old_path)", helper, 1)
-open('libs/System.c', 'w').write(src)
-print("patched libs/System.c")
-PYEOF
-
-    # -std=gnu17 -fpermissive: GCC 15 rejects some of fvwm's old C
-    CFLAGS="-O2 -std=gnu17 -fpermissive" ./configure --prefix=$PREFIX \
-        --disable-nls --disable-htmldoc --disable-mandoc --disable-iconv \
-        LIBS="$XLIBS_LINK" > c.log 2>&1
-    make -j "${JOBS:-8}" > m.log 2>&1
-    make install > i.log 2>&1
-    touch /build/stamps/fvwm
+# Pango: jwm draws its text with it, and without it has only the X server's
+# bitmap fonts.  Alpine has no static build of it.
+if [ ! -f stamps/pango ]; then
+    echo "== pango"
+    fetch https://download.gnome.org/sources/pango/${PANGO%.*}/pango-$PANGO.tar.xz
+    # only its static libraries are used; LDFLAGS is cleared because -static
+    # breaks the link of the utilities it builds alongside them
+    LDFLAGS= meson setup bld --prefix=/usr --libdir=lib --default-library=static \
+        -Ddocumentation=false -Dgtk_doc=false -Dman-pages=false \
+        -Dintrospection=disabled -Dbuild-testsuite=false -Dbuild-examples=false \
+        -Dfontconfig=enabled -Dfreetype=enabled -Dxft=enabled \
+        -Dcairo=disabled -Dlibthai=disabled -Dsysprof=disabled > c.log 2>&1
+    ninja -C bld > m.log 2>&1
+    ninja -C bld install > i.log 2>&1
+    touch /build/stamps/pango
 fi
 
-# FvwmScreenWatch: the session's own fvwm module, which restarts fvwm when the
-# viewer resizes the desktop (see src/FvwmScreenWatch.c for why)
-if [ ! -f stamps/screenwatch ] || [ /rdesk/src/FvwmScreenWatch.c -nt stamps/screenwatch ]; then
-    echo "== FvwmScreenWatch"
-    gcc -O2 -static -Wall -o $PREFIX/libexec/fvwm/2.7.0/FvwmScreenWatch \
-        /rdesk/src/FvwmScreenWatch.c -lX11 -lxcb -lXau -lXdmcp
-    touch /build/stamps/screenwatch
+# JWM: the window manager.  Built without cairo and rsvg, which it uses only
+# for SVG icons.
+if [ ! -f stamps/jwm ]; then
+    echo "== jwm"
+    fetch https://github.com/joewing/jwm/releases/download/v$JWM/jwm-$JWM.tar.xz
+    # jwm's configure looks for pkg-config as PKGCONFIG, and puts the libraries
+    # it finds into LDFLAGS, where a static link test cannot resolve them; so
+    # give its tests and the final link every library, in link order
+    JWM_LIBS=$($PKG_CONFIG --libs pangoxft xft xinerama xmu xpm xext xrender libpng libjpeg x11)
+    ./configure --prefix=$PREFIX --disable-nls --disable-cairo --disable-rsvg \
+        PKGCONFIG=$PKG_CONFIG LIBS="$JWM_LIBS" > c.log 2>&1
+    make -j "${JOBS:-8}" LDFLAGS="$(sed -n 's/^LDFLAGS = //p' src/Makefile) $JWM_LIBS" > m.log 2>&1
+    make install > i.log 2>&1
+    touch /build/stamps/jwm
 fi
 
 echo "== built binaries:"

@@ -11,7 +11,7 @@ libraries and no fonts works fine.
 
     your machine                        remote host
     ┌───────────┐    ssh tunnel    ┌──────────────────────────┐
-    │ vncviewer │◀─── socket ─────▶│  Xvnc ── fvwm ── apps    │
+    │ vncviewer │◀─── socket ─────▶│  Xvnc ── jwm ── apps     │
     └───────────┘                  └──────────────────────────┘
 
 Closing the viewer leaves everything running; connect again and your windows are
@@ -24,8 +24,7 @@ where you left them.
 |---|---|
 | `rdesk` | the command you run on your own machine |
 | `rdesk-session` | runs on the host to start, stop and report on a session |
-| `fvwm.rdesk` | example window manager configuration for remote sessions |
-| `src/` | FvwmScreenWatch, a small fvwm module of our own (see below) |
+| `jwm.rdesk` | the window manager configuration a session uses unless you have your own |
 | `build/` | builds the bundle from source |
 
 The bundle itself is not in the repository: build it with `build/build.sh`,
@@ -35,16 +34,10 @@ which writes `work/rdesk-static-x86_64.tar.gz`.
 
 ```sh
 # install the bundle
-scp rdesk-static-x86_64.tar.gz fvwm.rdesk host:
+scp rdesk-static-x86_64.tar.gz host:
 # on the host. Remove any existing install first
 rm -rf ~/local/rdesk &&
 tar xzf rdesk-static-x86_64.tar.gz -C ~/local
-
-# if you want to install the provided fvwm config (you can use your own)
-scp fvwm.rdesk host:
-# on the host
-mkdir -p ~/.fvwm
-cp fvwm.rdesk ~/.fvwm/config
 ```
 
 That gives `~/local/rdesk`, which is where `rdesk` looks by default. Any other
@@ -75,38 +68,56 @@ the session over: the first viewer is disconnected, the desktop carries on.
 
 ## Using the desktop
 
-Everything is done with the mouse, and no binding uses a modifier key, so Alt,
-Super and Tab all reach the programs you are running rather than being caught by
-the window manager at either end.
+The window manager is [JWM](https://joewing.net/projects/jwm/). Its
+configuration, `jwm.rdesk`, is JWM's stock one in the colours of the earlier
+fvwm setup:
 
-The default configuration is a traditional mouse-driven desktop:
-
-- focus follows the mouse, and clicking anywhere in a window brings it to the
-  front;
-- a bar along the bottom has a button for every window on the current desk:
-  click one to bring that window to the front, or to minimize it if it is
-  already in front. Minimized windows stay in the bar rather than as icons on
-  the desktop. Middle click a button for the window's menu;
-- the title bar has minimize, maximize and close buttons at the right, and
-  the window menu at the left; drag the title bar to move, a border to
-  resize, double click the title bar to shade;
-- the pager at the top left shows nine desks in a 3x3 grid; click one to go
-  there. Move a window to another desk by dragging it within the pager, by
-  dragging its title bar onto a pager square, or with "Send to desk" in the
-  window menu;
-- left click on the desktop background opens a menu that can launch a
-  terminal (xterm), middle click lists every window grouped by desk (pick one
-  to go to it), right click gives the session menu.
+- a bar along the bottom: the `JWM` button opens the main menu and `_` shows
+  the desktop; then the pager, four desks in a row (click one to go there, or
+  drag a window within it to another desk); a button for each window (click to
+  bring the window to the front, or to minimize it if it is already there);
+  and a clock;
+- focus follows the mouse, and a click in a window brings it to the front;
+- the title bar has minimize, maximize and close buttons at the right and the
+  window menu at the left; drag the title bar to move, a border to resize;
+  double click the title bar to maximize, scroll over it to shade;
+- left or middle click on the desktop background opens the main menu, with a
+  terminal (xterm) and "Restart", which reloads the configuration; its
+  Applications and Utilities entries are JWM's examples, and do nothing for
+  programs the host does not have. The scroll wheel there switches desks;
+- keys: Alt+Tab cycles windows, Alt+F4 closes one, Alt+1 to Alt+4 and
+  Alt+arrows switch desks, Alt+F1 opens the main menu, Alt+F2 the window
+  menu, Alt+F10 maximizes, and holding Alt lets you drag a window from
+  anywhere in it. The window manager on the machine you connect from may
+  catch some of these first.
 
 The desktop starts at 1920x1200 and follows your viewer window when you resize
-or maximize it. fvwm 2 cannot notice such a resize by itself, so the
-configuration runs a small module of our own, FvwmScreenWatch, that restarts
-fvwm once the size has settled: everything stays where it is, and the bar,
-maximizing and window placement follow the new size. (Without it, fvwm would
-go on maximizing windows to the old size.)
+or maximize it: JWM notices the new size itself, and the bar and maximized
+windows follow.
 
-To end a session, use `rdesk host stop` from your own machine. There is
-deliberately no "quit" entry in the menus.
+"Exit" in the main menu asks for confirmation and then ends the session, as
+`rdesk host stop` does.
+
+To change any of this, start from the bundle's configuration:
+
+```sh
+cp ~/local/rdesk/share/jwm/jwm.rdesk ~/.jwmrc
+```
+
+A session uses `~/.jwmrc` (or `~/.config/jwm/jwmrc`) when you have one, and
+`jwm.rdesk` otherwise; "Restart" reads it again. JWM's
+[configuration reference](https://joewing.net/projects/jwm/config.html)
+covers every setting. Besides the colours, `jwm.rdesk` differs from JWM's
+stock configuration only in spelling the clock format `%I:%M %p`, since the
+`%l` of the original shows nothing with the C library these programs are built
+with.
+
+The desktop background is grey15, set by JWM. JWM sets it each time it starts,
+and it restarts itself whenever the desktop is resized, so a colour set with
+`xsetroot` lasts only until the next resize. To manage the background yourself,
+remove the `Background` tag from your copy of the configuration, or have JWM
+run your command for it: `<Background type="command">xsetroot -solid
+steelblue</Background>`.
 
 ## Settings
 
@@ -123,8 +134,6 @@ On the host:
 | Variable | Default | For |
 |---|---|---|
 | `RDESK_GEOMETRY` | `1920x1200` | the desktop's initial size |
-
-The file is read afresh each session, and "Restart fvwm" in the menu reloads it.
 
 Fonts come from two places. Scalable fonts go through fontconfig, which sees
 the host's fonts plus the bundle's own: `Inconsolata`, `Hack`, `DejaVu Sans`,
@@ -152,7 +161,7 @@ ssh host '~/local/rdesk/bin/rdesk-session stop'      # same as rdesk host stop
 
 `Xvnc` from TigerVNC is both the X server and the VNC server — the same engine
 ThinLinc uses — so the desktop lives entirely on the host and only compressed
-screen updates cross the network. fvwm manages the windows; the programs you
+screen updates cross the network. JWM manages the windows; the programs you
 run, terminal included, come from the host.
 
 The session listens on a Unix socket that only your account can open, with no
@@ -177,8 +186,6 @@ connection, so nothing is exposed even on a host with thousands of users.
 
 Start with `rdesk-session version` and `rdesk-session log 40` on the host.
 
-- **Modules missing** (no pager) with errors naming `/opt/rdesk/...`: the host has
-  an older bundle. Install the current one and restart the session.
 - **Changes not taking effect:** a running session keeps the old programs and
   configuration. `rdesk host stop`, then connect again.
 - **A session that will not start:** the log names the reason; `rdesk host stop`
@@ -219,24 +226,14 @@ parallelism.
 | `build/libs.sh` | the X libraries Alpine has no static packages for |
 | `build/pam.sh` | a static `libpam.a`, which TigerVNC insists on linking |
 | `build/xvnc.sh` | `Xvnc`: TigerVNC's server code patched into the X.Org server |
-| `build/apps.sh` | `xkbcomp`, `xauth` and fvwm |
+| `build/apps.sh` | `xkbcomp`, `xauth`, Pango and JWM |
 | `build/assemble.sh` | collects it all into the bundle and the tarball |
 
-One patch is applied to an upstream source during the build, in `apps.sh`:
-
-- **fvwm** treats the first `+` anywhere in `ModulePath`/`ImagePath` as "the
-  previous path", which breaks any installation under a directory whose name
-  contains `+`. It now only does that for a `+` that is a whole path element.
-
 `Xvnc` is built with an empty xkb binary directory so it finds `xkbcomp` on
-`PATH`, which is what lets the bundle work from any location. fvwm has its data
-directory compiled in as well, and reads its own defaults file from there at
-startup, so `rdesk-session` reads that file explicitly from the bundle; the
-startup error naming `/opt/rdesk/.../ConfigFvwmDefaults` in the session log is
-harmless.
+`PATH`, which is what lets the bundle work from any location. JWM has the path
+of its fallback configuration compiled in as well, so `rdesk-session` hands it
+the bundle's copy with `-f` unless you have a configuration of your own.
 
-`src/FvwmScreenWatch.c` is built into an fvwm module and shipped with the
-others. It watches the root window for size changes and, once the size has
-held still for half a second, sends fvwm a command (`Restart` unless the
-`Module` line says otherwise). fvwm 2's own RandR handling is compiled out
-upstream.
+JWM draws its text with Pango; without it, JWM has only the X server's bitmap
+fonts. Alpine has no static Pango, so `apps.sh` builds one (without cairo) for
+JWM to link against.

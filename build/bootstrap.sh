@@ -63,9 +63,11 @@ echo "== installing build packages"
     libxinerama-dev libxrandr-dev libxcursor-dev libxfixes-dev libxkbfile-dev \
     libxmu-dev libxt-dev libsm-dev libfontenc-dev libxfont2-dev \
     xkeyboard-config font-dejavu font-hack font-inconsolata font-juliamono font-misc-misc mkfontscale ncurses \
-    openssl-dev openssl-libs-static'
+    openssl-dev openssl-libs-static \
+    glib-dev glib-static harfbuzz-dev harfbuzz-static fribidi-dev fribidi-static \
+    pcre2-dev pcre2-static graphite2-static gettext-static libffi-dev util-linux-static'
 
-# fvwm's configure runs "$PKG_CONFIG" as a single word, so --static has to be
+# configure scripts run "$PKG_CONFIG" as a single word, so --static has to be
 # wrapped in a script rather than passed as part of the variable
 "$WORK/enter" /bin/sh -c 'printf "#!/bin/sh\nexec pkg-config --static \"\$@\"\n" \
     > /usr/local/bin/pkg-config-static && chmod +x /usr/local/bin/pkg-config-static'
