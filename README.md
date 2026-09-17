@@ -128,8 +128,12 @@ The file is read afresh each session, and "Restart fvwm" in the menu reloads it.
 
 Fonts come from two places. Scalable fonts go through fontconfig, which sees
 the host's fonts plus the bundle's own: `Inconsolata`, `Hack`, `DejaVu Sans`,
-`DejaVu Sans Mono` and `DejaVu Serif` — so `xterm -fa Inconsolata` works on
-every host. Old-style bitmap fonts such as `fixed` are served by the display
+`DejaVu Sans Mono` and `DejaVu Serif` — so these are available on every host.
+`JuliaMono` is there too, mainly as a fallback for symbols the others lack, so
+that programs drawing them in a terminal do not show gaps.
+The bundle's Inconsolata is version 3, which suits terminals such as alacritty;
+xterm spaces its characters too widely with it, so use `DejaVu Sans Mono` or
+`Hack` there. Old-style bitmap fonts such as `fixed` are served by the display
 server itself; the bundle carries the full `misc-fixed` family, so `fixed`
 has its complete Unicode coverage everywhere, and any core font directories
 the host has are added to the server's font path as well.

@@ -41,7 +41,14 @@ for f in DejaVuSans DejaVuSans-Bold DejaVuSansMono DejaVuSansMono-Bold \
     cp "$A/usr/share/fonts/dejavu/$f.ttf" "$OUT/share/fonts/"
 done
 cp "$A"/usr/share/fonts/hack/Hack-{Regular,Bold,Italic,BoldItalic}.ttf "$OUT/share/fonts/"
-cp "$A/usr/share/fonts/inconsolata-classic/Inconsolata.otf" "$OUT/share/fonts/"
+# Inconsolata 3: only the normal width, of its many.  xterm spaces its cells
+# too wide with this version (it sizes them by the widest glyph, a ligature);
+# terminals that size cells by an ordinary character, such as alacritty, are fine.
+cp "$A"/usr/share/fonts/inconsolata/Inconsolata-{Regular,Medium,Bold}.otf "$OUT/share/fonts/"
+# JuliaMono for its symbol coverage: a monospaced fallback for the symbols
+# terminal programs draw that no other font here has, such as the ⛶ and ⛝ of
+# Claude Code's /context.
+cp "$A/usr/share/fonts/juliamono/JuliaMono-Regular.ttf" "$OUT/share/fonts/"
 
 # core (bitmap) fonts, served by Xvnc itself: the misc-fixed family, so that
 # "fixed" has full Unicode coverage rather than the server's Latin-1 built-in.

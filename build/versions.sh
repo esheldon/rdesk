@@ -10,11 +10,6 @@ XKBCOMP=1.5.0
 XAUTH=1.1.5
 LINUX_PAM=1.7.2
 
-# The classic Inconsolata (1.010), as Debian packages it.  The 3.000 rework
-# that distributions now ship has metrics that make xterm space its cells
-# about 20% too wide.
-INCONSOLATA_DEB=http://deb.debian.org/debian/pool/main/f/fonts-inconsolata/fonts-inconsolata_001.010-6_all.deb
-
 # X libraries Alpine ships without a static build, in dependency order
 XLIBS="libXau-1.0.12 libXdmcp-1.1.5 libfontenc-1.1.9 libXfont2-2.0.9
        libXfixes-6.0.2 libXrender-0.9.12 libXrandr-1.5.5 libXcursor-1.2.3

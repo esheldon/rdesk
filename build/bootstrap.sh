@@ -62,17 +62,8 @@ echo "== installing build packages"
     libxau-dev libxdmcp-dev libxrender-dev libxft-dev libxpm-dev \
     libxinerama-dev libxrandr-dev libxcursor-dev libxfixes-dev libxkbfile-dev \
     libxmu-dev libxt-dev libsm-dev libfontenc-dev libxfont2-dev \
-    xkeyboard-config font-dejavu font-hack font-misc-misc mkfontscale ncurses \
+    xkeyboard-config font-dejavu font-hack font-inconsolata font-juliamono font-misc-misc mkfontscale ncurses \
     openssl-dev openssl-libs-static'
-
-# the classic Inconsolata, from Debian's package (see versions.sh for why)
-"$WORK/enter" /bin/sh -c "set -e
-    [ -f /usr/share/fonts/inconsolata-classic/Inconsolata.otf ] && exit 0
-    mkdir -p /build/inconsolata && cd /build/inconsolata
-    curl -fsSL -o fonts-inconsolata.deb '$INCONSOLATA_DEB'
-    ar x fonts-inconsolata.deb && busybox tar xf data.tar.*
-    mkdir -p /usr/share/fonts/inconsolata-classic
-    cp usr/share/fonts/truetype/inconsolata/Inconsolata.otf /usr/share/fonts/inconsolata-classic/"
 
 # fvwm's configure runs "$PKG_CONFIG" as a single word, so --static has to be
 # wrapped in a script rather than passed as part of the variable
