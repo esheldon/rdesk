@@ -17,6 +17,8 @@ libraries and no fonts works fine.
 Closing the viewer leaves everything running; connect again and your windows are
 where you left them.
 
+![An rdesk session: terminals and a matplotlib window under JWM](docs/screenshot.png)
+
 
 ## What is here
 
