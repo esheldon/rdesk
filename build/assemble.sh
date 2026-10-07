@@ -14,11 +14,11 @@ TARBALL=${RDESK_TARBALL:-$WORK/rdesk-static-x86_64.tar.gz}
 [ -d "$R/bin" ] || { echo "nothing built yet in $R; run build/build.sh" >&2; exit 1; }
 
 rm -rf "$OUT"
-mkdir -p "$OUT"/{bin,share/jwm,share/X11,share/fonts,share/xfonts,cache}
+mkdir -p "$OUT"/{bin,share/jwm,share/X11,share/fonts,share/xfonts,share/terminfo,cache}
 
 # programs
 cp "$A/build/tvbuild/unix/xserver/hw/vnc/Xvnc" "$OUT/bin/"
-for b in jwm xauth xkbcomp; do
+for b in jwm st xauth xkbcomp; do
     cp "$R/bin/$b" "$OUT/bin/"
 done
 
@@ -37,6 +37,10 @@ strip "$OUT"/bin/* 2>/dev/null || true
 
 # data: keyboard data
 cp -r "$A/usr/share/X11/xkb" "$OUT/share/X11/"
+
+# st's terminal description, which few hosts have; rdesk-session puts this
+# directory on TERMINFO_DIRS, ahead of the host's own
+cp -r "$R/share/terminfo/." "$OUT/share/terminfo/"
 
 # fonts, for the window manager and for anything started in the session
 for f in DejaVuSans DejaVuSans-Bold DejaVuSansMono DejaVuSansMono-Bold \

@@ -12,9 +12,10 @@
       menus                same as inactive window
       desktop background   grey15
 
-    One other change from the stock configuration: the clock uses "%I" rather
-    than "%l", which the C library these programs are built with (musl) does
-    not support: the clock was blank.
+    Two other changes from the stock configuration: the Terminal entry runs
+    st, the terminal this bundle carries, rather than the host's xterm; and
+    the clock uses "%I" rather than "%l", which the C library these programs
+    are built with (musl) does not support: the clock was blank.
 
     JWM sets the desktop background each time it starts, and it restarts
     itself when the desktop is resized, so a colour set with xsetroot lasts
@@ -52,7 +53,8 @@
 
     <!-- The root menu. -->
     <RootMenu onroot="12">
-        <Program icon="utilities-terminal" label="Terminal">xterm</Program>
+        <Program icon="utilities-terminal" label="Terminal">st</Program>
+        <Program icon="utilities-terminal" label="xterm">xterm</Program>
         <Separator/>
         <Restart label="Restart" icon="reload"/>
         <Exit label="Exit" confirm="true" icon="exit"/>
@@ -64,6 +66,11 @@
     </Group>
     <Group>
         <Name>xterm</Name>
+        <Option>vmax</Option>
+    </Group>
+    <Group>
+        <!-- st gives its windows the name and class st-256color, after TERM -->
+        <Class>st-256color</Class>
         <Option>vmax</Option>
     </Group>
     <Group>

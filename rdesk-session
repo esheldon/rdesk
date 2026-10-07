@@ -185,6 +185,9 @@ start() {
     DISPLAY=$display
     export DISPLAY
     export FONTCONFIG_FILE=$STATE/fonts.conf
+    # the bundle's terminfo first, for st, then the host's own (the trailing
+    # colon), so every other terminal the host knows still works
+    export TERMINFO_DIRS=$B/share/terminfo:
     # Xvnc has no DRI3 (or GLX), so OpenGL programs always end up with Mesa's
     # software renderer; saying so up front spares every one of them a failed
     # attempt at hardware rendering and the warning it prints.  Your profile

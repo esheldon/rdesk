@@ -11,7 +11,7 @@ libraries and no fonts works fine.
 
     your machine                        remote host
     ┌───────────┐    ssh tunnel    ┌──────────────────────────┐
-    │ vncviewer │◀─── socket ─────▶│  Xvnc ── jwm ── apps     │
+    │ vncviewer │◀─── socket ─────▶│  Xvnc ── jwm ── st, apps │
     └───────────┘                  └──────────────────────────┘
 
 Closing the viewer leaves everything running; connect again and your windows are
@@ -84,7 +84,7 @@ fvwm setup:
   window menu at the left; drag the title bar to move, a border to resize;
   double click the title bar to maximize, scroll over it to shade;
 - left or middle click on the desktop background opens the main menu: a
-  terminal (xterm), "Restart", which reloads the configuration, and "Exit".
+  terminal (st), "Restart", which reloads the configuration, and "Exit".
   The scroll wheel there switches desks;
 - keys: Alt+Tab cycles windows, Alt+F4 closes one, Alt+1 to Alt+4 and
   Alt+arrows switch desks, Alt+F1 opens the main menu, Alt+F2 the window
@@ -109,7 +109,8 @@ A session uses `~/.jwmrc` (or `~/.config/jwm/jwmrc`) when you have one, and
 `jwm.rdesk` otherwise; "Restart" reads it again. JWM's
 [configuration reference](https://joewing.net/projects/jwm/config.html)
 covers every setting. Besides the colours, `jwm.rdesk` differs from JWM's
-stock configuration only in spelling the clock format `%I:%M %p`, since the
+stock configuration in two things: the menu opens the bundle's `st` rather
+than the host's `xterm`, and the clock format is spelled `%I:%M %p`, since the
 `%l` of the original shows nothing with the C library these programs are built
 with.
 
@@ -119,6 +120,32 @@ and it restarts itself whenever the desktop is resized, so a colour set with
 remove the `Background` tag from your copy of the configuration, or have JWM
 run your command for it: `<Background type="command">xsetroot -solid
 steelblue</Background>`.
+
+## The terminal
+
+The bundle carries [st](https://st.suckless.org/), so a session has a terminal
+even on a host without `xterm`. The main menu opens it, and typing `st` in one
+starts another.
+
+`st` keeps its settings in its source rather than a configuration file, so the
+bundle's is built with Inconsolata at pixelsize 17 and a palette meant to read
+on a dark background. Inconsolata draws smaller than most fonts at a given
+size: 17 gives the same 9 pixel wide cell as the Hack at 15 this used to use.
+Inconsolata has no italic, so fontconfig slants the upright face where a
+program asks for one. To try another font without rebuilding, run
+`st -f 'DejaVu Sans Mono:pixelsize=16'`; to change what the menu's terminal
+uses, edit the `st` section of `build/apps.sh` and build again.
+
+`TERM` is `st-256color`, a terminal description few hosts have: the bundle
+ships it and a session puts it first on `TERMINFO_DIRS`, ahead of the host's
+own, so every other terminal the host knows still works. Over ssh to a host
+that lacks it, programs fall back awkwardly; send it ahead once with
+`infocmp -x | ssh otherhost tic -x -`, or use `TERM=xterm-256color ssh ...`
+for the occasional login.
+
+The host's own terminals are unaffected — type `xterm` or `alacritty` as
+before. To have the menu open one of them, change the `Terminal` line in your
+own copy of the configuration.
 
 ## A PDF viewer and an image viewer
 
@@ -179,9 +206,10 @@ the host's fonts plus the bundle's own: `Inconsolata`, `Hack`, `DejaVu Sans`,
 `DejaVu Sans Mono` and `DejaVu Serif` — so these are available on every host.
 `JuliaMono` is there too, mainly as a fallback for symbols the others lack, so
 that programs drawing them in a terminal do not show gaps.
-The bundle's Inconsolata is version 3, which suits terminals such as alacritty;
-xterm spaces its characters too widely with it, so use `DejaVu Sans Mono` or
-`Hack` there. Old-style bitmap fonts such as `fixed` are served by the display
+The bundle's Inconsolata is version 3, which suits terminals that size their
+cells by an ordinary character, such as `st` and alacritty; xterm takes the
+widest glyph instead, a ligature, and so spaces its characters too widely with
+it — use `DejaVu Sans Mono` or `Hack` there. Old-style bitmap fonts such as `fixed` are served by the display
 server itself; the bundle carries the full `misc-fixed` family, so `fixed`
 has its complete Unicode coverage everywhere, and any core font directories
 the host has are added to the server's font path as well.
@@ -200,9 +228,9 @@ ssh host '~/local/rdesk/bin/rdesk-session stop'      # same as rdesk host stop
 
 `Xvnc` from TigerVNC is both the X server and the VNC server — the same engine
 ThinLinc uses — so the desktop lives entirely on the host and only compressed
-screen updates cross the network. JWM manages the windows; the programs you
-run, terminal included, come from the host, apart from the bundle's optional
-PDF and image viewers.
+screen updates cross the network. JWM manages the windows and `st` is the
+terminal; the other programs you run come from the host, apart from the
+bundle's optional PDF and image viewers.
 
 The session listens on a Unix socket that only your account can open, with no
 network listener at all, and the X display is protected by a cookie in your
@@ -220,8 +248,8 @@ connection, so nothing is exposed even on a host with thousands of users.
 - On load-balanced login pools, connect to a specific node's name, or you may not
   land on the node where your session is running.
 - Programs you run inside the session come from the host, so they need whatever
-  they normally need. The bundle provides the desktop, not the applications:
-  the terminal is the host's `xterm`. The exceptions are the
+  they normally need. The bundle provides the desktop, not the applications,
+  apart from [the terminal](#the-terminal) and the
   [PDF and image viewers](#a-pdf-viewer-and-an-image-viewer), if built in.
 
 
@@ -286,7 +314,7 @@ bundle only when the variable is set, so a later `build/build.sh` or
 | `build/libs.sh` | the X libraries Alpine has no static packages for |
 | `build/pam.sh` | a static `libpam.a`, which TigerVNC insists on linking |
 | `build/xvnc.sh` | `Xvnc`: TigerVNC's server code patched into the X.Org server |
-| `build/apps.sh` | `xkbcomp`, `xauth`, Pango and JWM |
+| `build/apps.sh` | `xkbcomp`, `xauth`, Pango, JWM and `st` |
 | `build/x11programs.sh` | optional: `mupdf` and `feh`, with imlib2 for `feh` |
 | `build/patches/` | the changes `x11programs.sh` makes to imlib2 and `feh` |
 | `build/assemble.sh` | collects it all into the bundle and the tarball |
@@ -299,6 +327,13 @@ the bundle's copy with `-f` unless you have a configuration of your own.
 JWM draws its text with Pango; without it, JWM has only the X server's bitmap
 fonts. Alpine has no static Pango, so `apps.sh` builds one (without cairo) for
 JWM to link against.
+
+`apps.sh` edits three things into `st`'s source before building it, since
+that is where `st` keeps its settings: the font, the colour palette, and a
+fallback for `getpwuid()`. The last one matters here — a static musl binary
+reads only `/etc/passwd`, so an account that comes from LDAP or SSSD is not
+found there, and stock `st` exits with "who are you?"; it now takes the shell
+and home directory from the environment instead.
 
 `feh` reads images with imlib2, which loads the code for each image format as
 a module with `dlopen()`; a static program cannot do that.
