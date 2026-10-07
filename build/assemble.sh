@@ -18,7 +18,7 @@ mkdir -p "$OUT"/{bin,share/jwm,share/X11,share/fonts,share/xfonts,share/terminfo
 
 # programs
 cp "$A/build/tvbuild/unix/xserver/hw/vnc/Xvnc" "$OUT/bin/"
-for b in jwm st xauth xkbcomp; do
+for b in jwm st xterm xauth xkbcomp; do
     cp "$R/bin/$b" "$OUT/bin/"
 done
 
@@ -35,8 +35,9 @@ fi
 
 strip "$OUT"/bin/* 2>/dev/null || true
 
-# data: keyboard data
+# data: keyboard data, and xterm's resource file
 cp -r "$A/usr/share/X11/xkb" "$OUT/share/X11/"
+cp -r "$R/share/X11/app-defaults" "$OUT/share/X11/"
 
 # st's terminal description, which few hosts have; rdesk-session puts this
 # directory on TERMINFO_DIRS, ahead of the host's own

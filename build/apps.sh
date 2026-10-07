@@ -1,5 +1,6 @@
 #!/bin/sh
-# Build the rest of the session as static binaries: xkbcomp, xauth, jwm and st.
+# Build the rest of the session as static binaries: xkbcomp, xauth, jwm, st
+# and xterm.
 # Runs inside the Alpine build tree (see bootstrap.sh).
 
 set -e
@@ -15,11 +16,12 @@ export CFLAGS="-O2"
 
 fetch() {   # download (once), unpack fresh, cd into the source
     file=/build/src/${1##*/}
+    dir=${file%.tar.*}; dir=$(basename "${dir%.tgz}")
     cd /build/src
     [ -f "$file" ] || curl -fsSLO "$1"
-    rm -rf "$(basename "${file%.tar.*}")"
+    rm -rf "$dir"
     busybox tar xf "$file"
-    cd "$(basename "${file%.tar.*}")"
+    cd "$dir"
 }
 
 # xkbcomp: the X server runs this to compile the keyboard map
@@ -179,6 +181,59 @@ PYEOF
     cp st $PREFIX/bin/
     tic -sx -o $PREFIX/share/terminfo st.info
     touch /build/stamps/st
+fi
+
+# xterm: the terminal every host already has a description for
+# (TERM=xterm-256color), with scrollback and settings that change without a
+# rebuild, through X resources.  It needs libXaw, from libs.sh.  No setuid or
+# utmp, which a static program run by a user could not use anyway.  Unlike
+# st it needs no change for LDAP or SSSD accounts: when getpwuid() finds
+# nothing it takes $SHELL, then /bin/sh.
+if [ ! -f /build/stamps/xterm ]; then
+    echo "== xterm"
+    fetch https://invisible-island.net/archives/xterm/xterm-$XTERM.tgz
+    ./configure --prefix=$PREFIX --disable-setuid --disable-setgid \
+        --disable-desktop --without-xinerama --without-xpm \
+        --with-terminal-type=xterm-256color > c.log 2>&1
+    make -j "${JOBS:-8}" > m.log 2>&1
+    install -D xterm $PREFIX/bin/xterm
+
+    # Its resource file, which a static libXt looks for only in the
+    # directories it was built with; rdesk-session puts the bundle's copy on
+    # XFILESEARCHPATH.  The bundle's defaults follow xterm's own: these are
+    # the lowest-priority resources, so ~/.Xdefaults, or resources loaded
+    # with xrdb, override any of them.
+    mkdir -p $PREFIX/share/X11/app-defaults
+    {
+        cat XTerm.ad
+        cat <<'XEOF'
+
+! rdesk: Hack, since xterm sizes its cells by the widest glyph and spaces
+! Inconsolata 3 too widely; and st's colours, for a dark background
+*VT100.faceName:	Hack
+*VT100.faceSize:	11
+*VT100.foreground:	#fffbe5
+*VT100.background:	#1f1f1f
+*VT100.cursorColor:	#fffbe5
+*VT100.color0:	#000000
+*VT100.color1:	#ff6600
+*VT100.color2:	#99ff99
+*VT100.color3:	#ffff66
+*VT100.color4:	#99ccff
+*VT100.color5:	#dda0dd
+*VT100.color6:	#00cdcd
+*VT100.color7:	#e5e5e5
+*VT100.color8:	#7f7f7f
+*VT100.color9:	#ff6600
+*VT100.color10:	#99ff99
+*VT100.color11:	#ffff66
+*VT100.color12:	#99ccff
+*VT100.color13:	#ff6699
+*VT100.color14:	#00ffff
+*VT100.color15:	#ffffff
+XEOF
+    } > $PREFIX/share/X11/app-defaults/XTerm
+    touch /build/stamps/xterm
 fi
 
 echo "== built binaries:"

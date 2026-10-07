@@ -188,6 +188,16 @@ start() {
     # the bundle's terminfo first, for st, then the host's own (the trailing
     # colon), so every other terminal the host knows still works
     export TERMINFO_DIRS=$B/share/terminfo:
+    # Xt programs find their resource files (app-defaults) on this path: the
+    # bundle's first, for its xterm, whose static libXt knows only the build
+    # machine's directories, then the places every Xt program looks when it
+    # is not set
+    xdirs=
+    for xd in /etc/X11 /usr/share/X11 /usr/lib/X11; do
+        xdirs="$xdirs:$xd/%L/%T/%N%C%S:$xd/%l/%T/%N%C%S:$xd/%T/%N%C%S"
+        xdirs="$xdirs:$xd/%L/%T/%N%S:$xd/%l/%T/%N%S:$xd/%T/%N%S"
+    done
+    export XFILESEARCHPATH="$B/share/X11/%T/%N%C%S:$B/share/X11/%T/%N%S$xdirs"
     # Xvnc has no DRI3 (or GLX), so OpenGL programs always end up with Mesa's
     # software renderer; saying so up front spares every one of them a failed
     # attempt at hardware rendering and the warning it prints.  Your profile

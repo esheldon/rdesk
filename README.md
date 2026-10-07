@@ -11,7 +11,7 @@ libraries and no fonts works fine.
 
     your machine                        remote host
     ┌───────────┐    ssh tunnel    ┌──────────────────────────┐
-    │ vncviewer │◀─── socket ─────▶│  Xvnc ── jwm ── st, apps │
+    │ vncviewer │◀─── socket ─────▶│  Xvnc ── jwm ── apps     │
     └───────────┘                  └──────────────────────────┘
 
 Closing the viewer leaves everything running; connect again and your windows are
@@ -84,7 +84,8 @@ fvwm setup:
   window menu at the left; drag the title bar to move, a border to resize;
   double click the title bar to maximize, scroll over it to shade;
 - left or middle click on the desktop background opens the main menu: a
-  terminal (st), "Restart", which reloads the configuration, and "Exit".
+  terminal (st), xterm, "Restart", which reloads the configuration, and
+  "Exit".
   The scroll wheel there switches desks;
 - keys: Alt+Tab cycles windows, Alt+F4 closes one, Alt+1 to Alt+4 and
   Alt+arrows switch desks, Alt+F1 opens the main menu, Alt+F2 the window
@@ -109,8 +110,8 @@ A session uses `~/.jwmrc` (or `~/.config/jwm/jwmrc`) when you have one, and
 `jwm.rdesk` otherwise; "Restart" reads it again. JWM's
 [configuration reference](https://joewing.net/projects/jwm/config.html)
 covers every setting. Besides the colours, `jwm.rdesk` differs from JWM's
-stock configuration in two things: the menu opens the bundle's `st` rather
-than the host's `xterm`, and the clock format is spelled `%I:%M %p`, since the
+stock configuration in two things: the menu offers the bundle's two
+terminals, `st` and `xterm`, and the clock format is spelled `%I:%M %p`, since the
 `%l` of the original shows nothing with the C library these programs are built
 with.
 
@@ -121,11 +122,15 @@ remove the `Background` tag from your copy of the configuration, or have JWM
 run your command for it: `<Background type="command">xsetroot -solid
 steelblue</Background>`.
 
-## The terminal
+## The terminals
 
-The bundle carries [st](https://st.suckless.org/), so a session has a terminal
-even on a host without `xterm`. The main menu opens it, and typing `st` in one
-starts another.
+The bundle carries two terminals, so a session has one even on a host
+without any: [st](https://st.suckless.org/), small and fast, and
+[xterm](https://invisible-island.net/xterm/), which has scrollback and a
+`TERM` every host already knows. The main menu opens either; typing `st` or
+`xterm` in one starts another.
+
+### st
 
 `st` keeps its settings in its source rather than a configuration file, so the
 bundle's is built with Inconsolata at pixelsize 17 and a palette meant to read
@@ -133,19 +138,43 @@ on a dark background. Inconsolata draws smaller than most fonts at a given
 size: 17 gives the same 9 pixel wide cell as the Hack at 15 this used to use.
 Inconsolata has no italic, so fontconfig slants the upright face where a
 program asks for one. To try another font without rebuilding, run
-`st -f 'DejaVu Sans Mono:pixelsize=16'`; to change what the menu's terminal
-uses, edit the `st` section of `build/apps.sh` and build again.
+`st -f 'DejaVu Sans Mono:pixelsize=16'`; to change the default, edit the
+`st` section of `build/apps.sh` and build again.
 
 `TERM` is `st-256color`, a terminal description few hosts have: the bundle
 ships it and a session puts it first on `TERMINFO_DIRS`, ahead of the host's
 own, so every other terminal the host knows still works. Over ssh to a host
 that lacks it, programs fall back awkwardly; send it ahead once with
 `infocmp -x | ssh otherhost tic -x -`, or use `TERM=xterm-256color ssh ...`
-for the occasional login.
+for the occasional login. `st` has no scrollback; run tmux in it, or use
+xterm.
 
-The host's own terminals are unaffected — type `xterm` or `alacritty` as
-before. To have the menu open one of them, change the `Terminal` line in your
-own copy of the configuration.
+### xterm
+
+`TERM` is `xterm-256color`, so ssh from it to anywhere just works. Its
+settings are X resources: the bundle's defaults are Hack at 11 points and the
+same colours as `st`, and anything in your `~/.Xdefaults`, or loaded with
+`xrdb`, overrides them, for example
+
+```
+XTerm*faceSize: 13
+XTerm*saveLines: 10000
+```
+
+It uses Hack rather than Inconsolata because xterm sizes its cells by the
+widest glyph in the font, and spaces Inconsolata 3 out too far (see
+[Settings](#settings)). Ctrl with the left, middle or right button opens its
+menus.
+
+The bundle's resources reach xterm through `XFILESEARCHPATH`, which a session
+sets with the bundle's directory first and then the usual ones, so other X
+programs find their own resource files as before. On a host with its own
+`xterm`, the order of `PATH` decides which one runs; `which xterm` in a
+terminal tells. Either way it reads the bundle's resources.
+
+Other terminals on the host, such as alacritty, work as before. To have the
+menu open one of them, change its `Program` line in your own copy of the
+configuration.
 
 ## A PDF viewer and an image viewer
 
@@ -228,8 +257,9 @@ ssh host '~/local/rdesk/bin/rdesk-session stop'      # same as rdesk host stop
 
 `Xvnc` from TigerVNC is both the X server and the VNC server — the same engine
 ThinLinc uses — so the desktop lives entirely on the host and only compressed
-screen updates cross the network. JWM manages the windows and `st` is the
-terminal; the other programs you run come from the host, apart from the
+screen updates cross the network. JWM manages the windows, and `st` and
+`xterm` are the terminals; the other programs you run come from the host,
+apart from the
 bundle's optional PDF and image viewers.
 
 The session listens on a Unix socket that only your account can open, with no
@@ -249,7 +279,7 @@ connection, so nothing is exposed even on a host with thousands of users.
   land on the node where your session is running.
 - Programs you run inside the session come from the host, so they need whatever
   they normally need. The bundle provides the desktop, not the applications,
-  apart from [the terminal](#the-terminal) and the
+  apart from [the terminals](#the-terminals) and the
   [PDF and image viewers](#a-pdf-viewer-and-an-image-viewer), if built in.
 
 
@@ -314,7 +344,7 @@ bundle only when the variable is set, so a later `build/build.sh` or
 | `build/libs.sh` | the X libraries Alpine has no static packages for |
 | `build/pam.sh` | a static `libpam.a`, which TigerVNC insists on linking |
 | `build/xvnc.sh` | `Xvnc`: TigerVNC's server code patched into the X.Org server |
-| `build/apps.sh` | `xkbcomp`, `xauth`, Pango, JWM and `st` |
+| `build/apps.sh` | `xkbcomp`, `xauth`, Pango, JWM, `st` and `xterm` |
 | `build/x11programs.sh` | optional: `mupdf` and `feh`, with imlib2 for `feh` |
 | `build/patches/` | the changes `x11programs.sh` makes to imlib2 and `feh` |
 | `build/assemble.sh` | collects it all into the bundle and the tarball |
@@ -333,7 +363,15 @@ that is where `st` keeps its settings: the font, the colour palette, and a
 fallback for `getpwuid()`. The last one matters here — a static musl binary
 reads only `/etc/passwd`, so an account that comes from LDAP or SSSD is not
 found there, and stock `st` exits with "who are you?"; it now takes the shell
-and home directory from the environment instead.
+and home directory from the environment instead. xterm needs no such change:
+when the lookup fails it falls back to `$SHELL`, then `/bin/sh`.
+
+xterm is built against libXaw, which `libs.sh` adds to the X libraries it
+builds, and without setuid or utmp support, which a static program started by
+an ordinary user could not use anyway. A static libXt looks for resource files
+only in the directories of the machine it was built on, hence the session's
+`XFILESEARCHPATH`. `apps.sh` appends the bundle's defaults to xterm's own
+resource file.
 
 `feh` reads images with imlib2, which loads the code for each image format as
 a module with `dlopen()`; a static program cannot do that.
