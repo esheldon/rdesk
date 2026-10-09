@@ -133,11 +133,11 @@ without any: [st](https://st.suckless.org/), small and fast, and
 ### st
 
 `st` keeps its settings in its source rather than a configuration file, so the
-bundle's is built with Inconsolata at pixelsize 17 and a palette meant to read
-on a dark background. Inconsolata draws smaller than most fonts at a given
-size: 17 gives the same 9 pixel wide cell as the Hack at 15 this used to use.
-Inconsolata has no italic, so fontconfig slants the upright face where a
-program asks for one. To try another font without rebuilding, run
+bundle's is built with JetBrains Mono at pixelsize 16 and a palette meant to
+read on a dark background. That gives a 10x22 pixel cell, so an 80x24 window
+is 804x532. The bundle carries the font's regular, bold, italic and bold
+italic, so programs that ask for italic get the real face rather than a
+slanted upright one. To try another font without rebuilding, run
 `st -f 'DejaVu Sans Mono:pixelsize=16'`; to change the default, edit the
 `st` section of `build/apps.sh` and build again.
 
@@ -161,10 +161,11 @@ XTerm*faceSize: 13
 XTerm*saveLines: 10000
 ```
 
-It uses Hack rather than Inconsolata because xterm sizes its cells by the
-widest glyph in the font, and spaces Inconsolata 3 out too far (see
-[Settings](#settings)). Ctrl with the left, middle or right button opens its
-menus.
+It uses Hack rather than `st`'s JetBrains Mono only because its resources were
+written that way; `XTerm*faceName: JetBrains Mono` changes it. Avoid
+Inconsolata here: xterm sizes its cells by the widest glyph in the font, and
+spaces Inconsolata 3 out too far (see [Settings](#settings)). Ctrl with the
+left, middle or right button opens its menus.
 
 The bundle's resources reach xterm through `XFILESEARCHPATH`, which a session
 sets with the bundle's directory first and then the usual ones, so other X
@@ -231,8 +232,10 @@ On the host:
 | `RDESK_GEOMETRY` | `1920x1200` | the desktop's initial size |
 
 Fonts come from two places. Scalable fonts go through fontconfig, which sees
-the host's fonts plus the bundle's own: `Inconsolata`, `Hack`, `DejaVu Sans`,
-`DejaVu Sans Mono` and `DejaVu Serif` — so these are available on every host.
+the host's fonts plus the bundle's own: `JetBrains Mono`, `Inconsolata`,
+`Hack`, `DejaVu Sans`, `DejaVu Sans Mono` and `DejaVu Serif` — so these are
+available on every host. Of these only `JetBrains Mono` and `Hack` have a
+real italic.
 `JuliaMono` is there too, mainly as a fallback for symbols the others lack, so
 that programs drawing them in a terminal do not show gaps.
 The bundle's Inconsolata is version 3, which suits terminals that size their

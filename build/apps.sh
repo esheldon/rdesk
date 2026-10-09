@@ -14,11 +14,21 @@ export PKG_CONFIG=/usr/local/bin/pkg-config-static
 export LDFLAGS="-static"
 export CFLAGS="-O2"
 
-fetch() {   # download (once), unpack fresh, cd into the source
+# download (once), unpack fresh, cd into the source.  More than one URL may be
+# given for the same file, and they are tried in turn, for sources whose site
+# is not always up.
+fetch() {
     file=/build/src/${1##*/}
     dir=${file%.tar.*}; dir=$(basename "${dir%.tgz}")
     cd /build/src
-    [ -f "$file" ] || curl -fsSLO "$1"
+    if [ ! -f "$file" ]; then
+        for url; do
+            rm -f "$file.part"
+            curl -fsSL -o "$file.part" "$url" && break
+        done
+        [ -s "$file.part" ] || { echo "could not download ${file##*/}" >&2; exit 1; }
+        mv "$file.part" "$file"
+    fi
     rm -rf "$dir"
     busybox tar xf "$file"
     cd "$dir"
@@ -83,14 +93,11 @@ if [ ! -f /build/stamps/st ]; then
     echo "== st"
     fetch https://dl.suckless.org/st/st-$ST.tar.gz
 
-    # Inconsolata, shipped in the bundle; st's default (Liberation Mono,
+    # JetBrains Mono, shipped in the bundle; st's default (Liberation Mono,
     # pixelsize 12, autohinted) is not, and falls back to something small and
-    # rough.  Pixelsize 17 because Inconsolata draws smaller than most fonts
-    # at a given size: it gives a 9x19 cell, near the 9x18 of the Hack at 15
-    # this used to be.  st sizes its cell from the average advance of the
-    # ASCII characters, so Inconsolata 3's wide ligature glyphs do not
-    # stretch it the way they stretch xterm's.
-    sed -i 's|^static char \*font = .*|static char *font = "Inconsolata:pixelsize=17:antialias=true:autohint=false";|' config.def.h
+    # rough.  The bundle carries its regular, bold, italic and bold italic, so
+    # fontconfig has a real face for each rather than slanting the upright one.
+    sed -i 's|^static char \*font = .*|static char *font = "JetBrains Mono:pixelsize=16:antialias=true:autohint=false";|' config.def.h
     rm -f config.h
 
     # Colours, which st compiles in.  The stock palette is hard to read on a
@@ -191,7 +198,10 @@ fi
 # nothing it takes $SHELL, then /bin/sh.
 if [ ! -f /build/stamps/xterm ]; then
     echo "== xterm"
-    fetch https://invisible-island.net/archives/xterm/xterm-$XTERM.tgz
+    # invisible-mirror.net is the xterm author's other site, with the same
+    # files; it is tried first because invisible-island.net is sometimes down.
+    fetch https://invisible-mirror.net/archives/xterm/xterm-$XTERM.tgz \
+          https://invisible-island.net/archives/xterm/xterm-$XTERM.tgz
     ./configure --prefix=$PREFIX --disable-setuid --disable-setgid \
         --disable-desktop --without-xinerama --without-xpm \
         --with-terminal-type=xterm-256color > c.log 2>&1

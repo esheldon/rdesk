@@ -49,6 +49,10 @@ for f in DejaVuSans DejaVuSans-Bold DejaVuSansMono DejaVuSansMono-Bold \
     cp "$A/usr/share/fonts/dejavu/$f.ttf" "$OUT/share/fonts/"
 done
 cp "$A"/usr/share/fonts/hack/Hack-{Regular,Bold,Italic,BoldItalic}.ttf "$OUT/share/fonts/"
+# JetBrains Mono, which st is built to use: the four faces a terminal asks
+# for, of the many weights the font has.
+cp "$A"/usr/share/fonts/jetbrains-mono/JetBrainsMono-{Regular,Bold,Italic,BoldItalic}.ttf \
+   "$OUT/share/fonts/"
 # Inconsolata 3: only the normal width, of its many.  xterm spaces its cells
 # too wide with this version (it sizes them by the widest glyph, a ligature);
 # terminals that size cells by an ordinary character, such as alacritty, are fine.

@@ -62,7 +62,7 @@ echo "== installing build packages"
     libxau-dev libxdmcp-dev libxrender-dev libxft-dev libxpm-dev \
     libxinerama-dev libxrandr-dev libxcursor-dev libxfixes-dev libxkbfile-dev \
     libxmu-dev libxt-dev libsm-dev libfontenc-dev libxfont2-dev \
-    xkeyboard-config font-dejavu font-hack font-inconsolata font-juliamono font-misc-misc mkfontscale ncurses ncurses-dev ncurses-static \
+    xkeyboard-config font-dejavu font-hack font-inconsolata font-jetbrains-mono font-juliamono font-misc-misc mkfontscale ncurses ncurses-dev ncurses-static \
     openssl-dev openssl-libs-static \
     glib-dev glib-static harfbuzz-dev harfbuzz-static fribidi-dev fribidi-static \
     pcre2-dev pcre2-static graphite2-static gettext-static libffi-dev util-linux-static'
